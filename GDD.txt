@@ -1,0 +1,17 @@
+Game Design Document: Vendetta
+
+Hi AI, this will be your reference for how my vision of Vendetta, the game we're making in Phaser, will be. 
+
+I will call your help iteratively, making small changes over time until the game is complete, however this will layout my entire vision incase you need to reference it. 
+
+The game itself is a side scrolling platformer / arcade shooter. I want the gameplay to feel similar to Cuphead's Dragon Level, where the screen is constantly moving to the right and platforms are constantly moving to the left, forcing the player to continuously jump from platform to platform in order to not be pushed by the border of the screen and fall.
+
+The player will have a revolver with 6 bullets, which after he fires all 6 will have a short reload delay, and then be able to fire again. The player will also be able to press R to reload at any moment. I will possibly even add a quick reload mechanic, similar to the reload in Gears of War to make the player be able to shoot quicker
+
+For a unique mechanic, I want to implement a sort of Ground Pound. If the player presses shift, the player will slam towards the ground, destroying all platforms beneath him, but also becoming invulnerable to damage. This will serve as the games "dive-roll" as seen in other roguelike games. 
+
+Lastly, the game will feature waves of enemies, which the next wave will trigger when all the current wave enemies are destroyed. We will also be creating multiple different enemy types.
+
+The player will have 3 hearts, which will be displayed in the upper rigt hand corner. Each hit will reduce a heart and give the player 2 seconds of invulnerability, making sure they can't take 3 instances of damage at the same time and dying instantly. 
+
+Before we work: Aquaint yourself with the current, old version of the game. 
