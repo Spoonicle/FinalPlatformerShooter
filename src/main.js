@@ -22,6 +22,13 @@ let config = {
     fps: { forceSetTimeOut: true, target: 60 },   // ensure consistent timing across machines
     width: 800,
     height: 600,
+    physics: {
+        default: 'arcade',
+        arcade: {
+            gravity: { y: 3500 },
+            debug: true
+        }
+    },
     scene: [ArcadeShooter]
 }
 

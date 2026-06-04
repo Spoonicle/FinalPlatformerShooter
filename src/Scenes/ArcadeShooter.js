@@ -6,7 +6,14 @@ class ArcadeShooter extends Phaser.Scene {
         // The object has two properties, both of which are objects
         //  - "sprite" holds bindings (pointers) to created sprites
         //  - "text"   holds bindings to created bitmap text objects
-        this.my = {sprite: {}, text: {}};
+        this.my = { sprite: {}, text: {} };
+
+        // Array of platform sprite keys for random selection
+        this.platformSpriteKeys = [
+            "platform1", "platform2", "platform3", "platform4",
+            "platform5", "platform6", "platform7", "platform8",
+            "platform9", "platform10", "platform11", "platform12"
+        ];
 
         // Create a property inside "sprite" named "bullet".
         // The bullet property has a value which is an array.
@@ -15,10 +22,10 @@ class ArcadeShooter extends Phaser.Scene {
         this.my.sprite.enemyBullet = [];
         this.my.sprite.enemies = [];
         this.maxBullets = 1;           // Don't create more than this many bullets
-        
+
         this.myScore = 0;       // record a score as a class variable
         this.myHealth = 3;      // Start with 3 health
-        this.currentRound = 1;  // Start at round 1
+        this.currentRound = 1;  // Start at round 1 (disabled while no enemies)
         this.gameOver = false;  // Track if the game is over
         this.highScore = 0;     // Track the high score across restarts
         this.highScoreColor = "Beige"; // Track the color of the alien with the high score
@@ -38,21 +45,6 @@ class ArcadeShooter extends Phaser.Scene {
             this.load.image(`alien${color}_badge1`, `alien${color}_badge1.png`);
         }
         this.load.image("bullet", "ghost_hit.png");
-        this.load.image("snake", "snake.png");
-        this.load.image("snake_walk", "snake_walk.png");
-        this.load.image("redSnake", "snakeLava.png");
-        this.load.image("redSnake_ani", "snakeLava_ani.png");
-        this.load.image("redSnake_dead", "snakeLava_dead.png");
-        this.load.image("redSnake_hit", "snakeLava_hit.png");
-        this.load.image("greenSnake", "snakeSlime.png");
-        this.load.image("greenSnake_ani", "snakeSlime_ani.png");
-        this.load.image("greenSnake_dead", "snakeSlime_dead.png");
-        this.load.image("greenSnake_hit", "snakeSlime_hit.png");
-        this.load.image("greenSnake", "snakeSlime.png");
-        this.load.image("slimeBlock", "slimeBlock.png");
-        this.load.image("barnacle", "barnacle.png");
-        this.load.image("barnacleBite", "barnacle_bite.png");
-        this.load.image("barnacleHit", "barnacle_hit.png");
         for (let i = 0; i <= 5; i++) {
             this.load.image(`bg${i}`, `${i}.png`);
         }
@@ -66,6 +58,22 @@ class ArcadeShooter extends Phaser.Scene {
         this.load.image("explosion-6", "explosion-6.png");
         this.load.image("explosion-7", "explosion-7.png");
         this.load.image("explosion-8", "explosion-8.png");
+
+        // Load platform sprites
+        this.load.setPath("./assets/Platforms/");
+        this.load.image("platform1", "Container_11_Green_Horizontal.png");
+        this.load.image("platform2", "Container_12_Green_Horizontal_Overgrown_Bleak-Yellow.png");
+        this.load.image("platform3", "Container_12_Green_Horizontal_Overgrown_Dark-Green.png");
+        this.load.image("platform4", "Container_12_Green_Horizontal_Overgrown_Green.png");
+        this.load.image("platform5", "Container_3_Gray_Horizontal.png");
+        this.load.image("platform6", "Container_4_Gray_Horizontal_Overgrown_Bleak-Yellow.png");
+        this.load.image("platform7", "Container_4_Gray_Horizontal_Overgrown_Dark-Green.png");
+        this.load.image("platform8", "Container_4_Gray_Horizontal_Overgrown_Green.png");
+        this.load.image("platform9", "Container_7_Red_Horizontal.png");
+        this.load.image("platform10", "Container_8_Red_Horizontal_Overgrown_Bleak-Yellow.png");
+        this.load.image("platform11", "Container_8_Red_Horizontal_Overgrown_Dark-Green.png");
+        this.load.image("platform12", "Container_8_Red_Horizontal_Overgrown_Green.png");
+        this.load.setPath("./assets/");
 
 
 
@@ -101,7 +109,7 @@ class ArcadeShooter extends Phaser.Scene {
         this.bgScrollSpeed = 100; // Base speed of the foreground
         this.parallaxLayers = [];
         // Loop backwards from 5 to 0 so the backdrop (5) renders first and foreground (0) renders last
-        for (let i = 5; i >= 0; i--) { 
+        for (let i = 5; i >= 0; i--) {
             // 1. Get the actual height of the loaded image texture
             let textureHeight = this.textures.get(`bg${i}`).getSourceImage().height;
             let scaleY = game.config.height / textureHeight;
@@ -110,54 +118,12 @@ class ArcadeShooter extends Phaser.Scene {
             // We divide the width by scaleY so that when we scale the whole object up, it fits perfectly.
             let bg = this.add.tileSprite(400, 300, game.config.width / scaleY, textureHeight, `bg${i}`);
             bg.setScale(scaleY); // 3. Scale the entire object up to fit the screen
-            
+
             let speedMultiplier = 1 - (i * 0.16); // Layer 5 is slowest (0.2x speed), layer 0 is fastest (1x speed)
             this.parallaxLayers.push({ sprite: bg, speed: speedMultiplier });
         }
 
-        // Create green snake / boss animation
-        this.anims.create({
-            key: "greenSnakeAnim",
-            frames: [
-                { key: "greenSnake" },
-                { key: "greenSnake_ani" }
-            ],
-            frameRate: 4,
-            repeat: -1
-        });
-        
-        // Create enemy bullet animation
-        this.anims.create({
-            key: "enemyBulletAnim",
-            frames: [
-                { key: "snake" },
-                { key: "snake_walk" }
-            ],
-            frameRate: 8,
-            repeat: -1
-        });
 
-        // Create red snake pop-up animation
-        this.anims.create({
-            key: "redSnakeAnim",
-            frames: [
-                { key: "redSnake" },
-                { key: "redSnake_ani" }
-            ],
-            frameRate: 4,
-            repeat: -1
-        });
-
-        // Create red snake pop-up animation
-        this.anims.create({
-            key: "barnacleAnim",
-            frames: [
-                { key: "barnacle" },
-                { key: "barnacleBite" }
-            ],
-            frameRate: 4,
-            repeat: -1
-        });
 
         // Notice that in this approach, we don't create any bullet sprites in create(),
         // and instead wait until we need them, based on the number of space bar presses
@@ -201,50 +167,102 @@ class ArcadeShooter extends Phaser.Scene {
         this.right = this.input.keyboard.addKey("D");
         this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         this.rKey = this.input.keyboard.addKey("R");
+        this.iKey = this.input.keyboard.addKey("I"); // Toggle invulnerability during tests
+        this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
         // Set movement speeds (in pixels/sec)
         this.playerSpeed = 250;
+        this.jumpSpeed = 1200;
         this.bulletSpeed = 500;
         this.enemyBulletSpeed = 300;
         this.enemySpeed = 100;
 
-        // update HTML description
-        document.getElementById('description').innerHTML = '<h2>Vendetta</h2><br>WASD: Move // Space: Fire // R: Restart'
+        // Determine the maximum vertical reach of a jump (use original jump reference to keep platform spawning unchanged)
+        const low_height = 500; // preserve original platform spawn behavior
+        this.maxPlatformJumpDistance = Math.floor((low_height * low_height) / (2 * this.physics.world.gravity.y));
 
-        // HUD
-        my.text.logo1 = this.add.text(10, 5, "vendetta", { fontFamily: 'sans-serif', fontSize: '28px', fontStyle: 'oblique', color: '#FFFFFF' });
-        my.text.logo2 = this.add.text(11, 6, "vendetta", { fontFamily: 'sans-serif', fontSize: '28px', fontStyle: 'oblique', color: '#FFFFFF' });
-        my.text.logo3 = this.add.text(12, 7, "vendetta", { fontFamily: 'sans-serif', fontSize: '28px', fontStyle: 'oblique', color: '#FFFFFF' });
-        my.text.logo1.visible = false;
-        my.text.logo2.visible = false;
-        my.text.logo3.visible = false;
+        // Coyote time: allow a short grace period after leaving ground so jumps feel responsive
+        this.coyoteTime = 150; // milliseconds
+        this.lastGrounded = 0;
 
-        my.text.score  = this.add.bitmapText(580, 5,   "rocketSquare", "Score 0",  20);
+        // Single jump
+        this.maxJumps = 1;
+        this.jumpsRemaining = this.maxJumps;
+
+        // Create a simple ground for the platformer (invisible but collidable)
+        // Increased height so the ground area is a bit taller
+        this.ground = this.add.rectangle(game.config.width / 2, game.config.height - 40, game.config.width, 80, 0x555555).setOrigin(0.5).setVisible(false);
+        this.physics.add.existing(this.ground, true);
+
+        // Create moving platforms as a physics group so collision is handled consistently
+        this.platforms = this.physics.add.group({ immovable: true, allowGravity: false });
+        this.platformSpawnCount = 0;
+        this.patterns = {}; // track active patterns
+
+        // Platform configuration
+        this.platformConfig = {
+            platformSize: { width: 160, height: 32 },
+            spawnBufferX: 100,
+            despawnBufferX: 60,
+            numZones: null, // dynamic
+            zoneTopMargin: 120,
+            zoneBottomMargin: 220,
+            platformSpeed: 150,
+            speedJitter: 0,
+            spawnIntervalRange: [1200, 2200],
+            initialLowCount: 3,
+            platformMaxRiseRatio: 0.75,
+            platformScale: 2,
+            oneWay: false
+        };
+
+        // Determine zones (equal-height vertical bands)
+        let usable = game.config.height - this.platformConfig.zoneTopMargin - this.platformConfig.zoneBottomMargin;
+        this.numZones = this.platformConfig.numZones || 5;
+        this.zoneHeight = Math.floor(usable / this.numZones);
+        this.zones = [];
+        for (let i = 0; i < this.numZones; i++) {
+            let top = this.platformConfig.zoneTopMargin + i * this.zoneHeight;
+            let bottom = Math.min(top + this.zoneHeight, game.config.height - this.platformConfig.zoneBottomMargin);
+            this.zones.push({ top: top, bottom: bottom });
+        }
+
+        this.platformSpawnTimer = Phaser.Math.Between(this.platformConfig.spawnIntervalRange[0], this.platformConfig.spawnIntervalRange[1]);
+
+        my.text.score = this.add.bitmapText(580, 5, "rocketSquare", "Score 0", 20);
         my.text.score.visible = false;
-        
+
         // High Score UI
         my.text.highScore = this.add.bitmapText(580, 30, "rocketSquare", "High 0", 20);
         my.text.highScore.visible = false;
         my.sprite.highScoreBadge = this.add.sprite(760, 27, `alien${this.highScoreColor}_badge2`).setScale(0.8);
         my.sprite.highScoreBadge.visible = false; // Hide until a score is actually achieved
-        
-        my.text.round  = this.add.bitmapText(350, 5,   "rocketSquare", "Round 1",  20);
+        // Small on-screen indicator for invulnerability (hidden by default)
+        my.text.invul = this.add.text(580, 55, "INVUL", { fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#FF4444' }).setOrigin(0, 0);
+        my.text.invul.visible = false;
+
+        my.text.round = this.add.bitmapText(350, 5, "rocketSquare", "Round 1", 20);
         my.text.round.visible = false;
 
         // Title Screen Text
-        my.text.titleTextShadow1 = this.add.text(game.config.width/2 + 3, game.config.height/2 - 63, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.titleTextShadow2 = this.add.text(game.config.width/2 + 6, game.config.height/2 - 66, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.titleText = this.add.text(game.config.width/2, game.config.height/2 - 60, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.authorText = this.add.text(game.config.width/2, game.config.height/2 + 20, "Created by Mason Reoch", { fontFamily: 'sans-serif', fontSize: '24px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.startText = this.add.bitmapText(game.config.width/2, game.config.height/2 + 80, "rocketSquare", "Press SPACE to Start", 24).setOrigin(0.5);
+        my.text.titleTextShadow1 = this.add.text(game.config.width / 2 + 3, game.config.height / 2 - 63, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.titleTextShadow2 = this.add.text(game.config.width / 2 + 6, game.config.height / 2 - 66, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.titleText = this.add.text(game.config.width / 2, game.config.height / 2 - 60, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.authorText = this.add.text(game.config.width / 2, game.config.height / 2 + 20, "Created by Mason Reoch", { fontFamily: 'sans-serif', fontSize: '24px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.startText = this.add.bitmapText(game.config.width / 2, game.config.height / 2 + 80, "rocketSquare", "Press SPACE to Start", 24).setOrigin(0.5);
 
         // Game Over text
-        my.text.gameOver = this.add.bitmapText(game.config.width/2, game.config.height/2, "rocketSquare", "GAME OVER\nPress R to Restart").setOrigin(0.5).setCenterAlign();
+        my.text.gameOver = this.add.bitmapText(game.config.width / 2, game.config.height / 2, "rocketSquare", "GAME OVER\nPress R to Restart").setOrigin(0.5).setCenterAlign();
         my.text.gameOver.visible = false;
 
         // Round announcement — shown briefly at the start of each round
-        my.text.roundAnnounce = this.add.bitmapText(game.config.width/2, game.config.height/2 - 60, "rocketSquare", "", 64).setOrigin(0.5).setCenterAlign().setDepth(10);
+        my.text.roundAnnounce = this.add.bitmapText(game.config.width / 2, game.config.height / 2 - 60, "rocketSquare", "", 64).setOrigin(0.5).setCenterAlign().setDepth(10);
         my.text.roundAnnounce.visible = false;
+
+        // Health/logo indicators (can be used for display during gameplay)
+        my.text.logo1 = this.add.text(0, 0, "").setVisible(false);
+        my.text.logo2 = this.add.text(0, 0, "").setVisible(false);
+        my.text.logo3 = this.add.text(0, 0, "").setVisible(false);
     }
 
     initGame() {
@@ -255,6 +273,9 @@ class ArcadeShooter extends Phaser.Scene {
         this.myHealth = 3;
         this.myScore = 0;
         this.currentRound = 1;
+        // Testing: make player invulnerable to damage while we test
+        this.invulnerable = true;
+        if (my.text && my.text.invul) my.text.invul.visible = this.invulnerable;
 
         // Determine player color first so HUD can use it to draw the correct health icons
         const colors = ["Beige", "Blue", "Green", "Pink", "Yellow"];
@@ -264,7 +285,8 @@ class ArcadeShooter extends Phaser.Scene {
         if (my.text.gameOver) my.text.gameOver.visible = false;
         this.updateHealth();
         this.updateScore();
-        this.updateRound();
+        // Round counter disabled while no enemies are implemented
+        // this.updateRound();
         this.updateHighScoreUI();
 
         // Destroy any leftover sprites from a previous game
@@ -274,20 +296,36 @@ class ArcadeShooter extends Phaser.Scene {
         my.sprite.bullet = [];
         for (let eb of my.sprite.enemyBullet) eb.destroy();
         my.sprite.enemyBullet = [];
+        if (this.platforms) {
+            this.platforms.clear(true, true);
+        }
+        this.platformSpawnCount = 0;
 
         // Destroy old player if one exists (e.g. on restart)
         if (my.sprite.player) my.sprite.player.destroy();
 
-        my.sprite.player = this.add.sprite(40, game.config.height / 2, `alien${this.playerColor}_newWalk1`).setScale(0.5);
+        my.sprite.player = this.physics.add.sprite(40, game.config.height - 120, `alien${this.playerColor}_newWalk1`).setScale(0.5).setCollideWorldBounds(true);
         my.sprite.player.facingDirection = 1;
+        this.physics.add.collider(my.sprite.player, this.ground);
+        // Standard collider; one-way behavior is handled via checkCollision flags on each platform
+        this.platformCollider = this.physics.add.collider(my.sprite.player, this.platforms);
+        this.isGroundPounding = false;
 
-        this.spawnRound(this.currentRound);
-        this.showRoundAnnouncement(this.currentRound);
+        // Round system disabled while no enemies are implemented
+        // this.spawnRound(this.currentRound);
+        // this.showRoundAnnouncement(this.currentRound);
     }
 
     update(time, delta) {
         let my = this.my;
         let dt = delta / 1000;
+
+        // Debug: toggle invulnerability at runtime with I
+        if (Phaser.Input.Keyboard.JustDown(this.iKey)) {
+            this.invulnerable = !this.invulnerable;
+            if (my.text && my.text.invul) my.text.invul.visible = this.invulnerable;
+            console.log("Invulnerable:", this.invulnerable);
+        }
 
         // Scroll the parallax background (increases tilePositionX so texture moves up, simulating player moving down)
         for (let layer of this.parallaxLayers) {
@@ -303,14 +341,15 @@ class ArcadeShooter extends Phaser.Scene {
                 my.text.titleText.visible = false;
                 my.text.authorText.visible = false;
                 my.text.startText.visible = false;
-                
-                my.text.logo1.visible = true;
-                my.text.logo2.visible = true;
-                my.text.logo3.visible = true;
-                my.text.score.visible = true;
-                my.text.highScore.visible = true;
-                my.text.round.visible = true;
-                
+
+                if (my.text.logo1) my.text.logo1.visible = true;
+                if (my.text.logo2) my.text.logo2.visible = true;
+                if (my.text.logo3) my.text.logo3.visible = true;
+                if (my.text.score) my.text.score.visible = true;
+                if (my.text.highScore) my.text.highScore.visible = true;
+                // Round counter hidden while no enemies
+                // if (my.text.round) my.text.round.visible = true;
+
                 this.initGame();
             }
             return; // Don't run the rest of the game logic while on the title screen
@@ -321,63 +360,133 @@ class ArcadeShooter extends Phaser.Scene {
             this.initGame();
         }
 
+        if (this.gameState === "PLAYING" && !this.gameOver) {
+            this.platformSpawnTimer -= delta;
+            if (this.platformSpawnTimer <= 0) {
+                this.spawnPlatform();
+                this.platformSpawnTimer = Phaser.Math.Between(this.platformConfig.spawnIntervalRange[0], this.platformConfig.spawnIntervalRange[1]);
+            }
+
+            this.platforms.getChildren().forEach((platform) => {
+                // Safety check: if platform has lost its velocity (stuck), restore it
+                if (platform.body && platform.x > -500 && platform.x < game.config.width + 200) {
+                    if (Math.abs(platform.body.velocity.x) < 1) {
+                        // Platform is moving too slowly or not at all - restore velocity
+                        let speed = platform._spawnMeta?.speed || 120;
+                        platform.body.setVelocityX(-Math.abs(speed));
+                        console.warn("Platform velocity reset to", -Math.abs(speed));
+                    }
+                }
+
+                // Despawn when fully off-screen to the left
+                if (platform.x < -(this.platformConfig.despawnBufferX + (platform.displayWidth / 2))) {
+                    this.removePlatform(platform);
+                }
+            });
+        }
+
         if (this.myHealth > 0) {
             let isMoving = false;
-
-            // Moving up
-            if (this.up.isDown) {
-                if (my.sprite.player.y > (my.sprite.player.displayHeight/2)) {
-                    my.sprite.player.y -= this.playerSpeed * dt;
+            // Improved ground detection using blocked/touching/onFloor
+            let onGround = false;
+            let onActualGround = false;
+            if (my.sprite.player && my.sprite.player.body) {
+                onGround = my.sprite.player.body.blocked.down || my.sprite.player.body.touching.down || my.sprite.player.body.onFloor();
+                
+                // Check if the player is specifically touching the ground object at the bottom of the screen
+                if (onGround && my.sprite.player.body.bottom >= this.ground.y - (this.ground.height / 2) - 1) {
+                    onActualGround = true;
                 }
-                isMoving = true;
+            }
+            
+            if (onActualGround && !this.wasOnActualGround) {
+                // Check if a ground-spawned platform already exists on screen
+                let groundPlatformExists = this.platforms.getChildren().some(p => p.isGroundSpawn);
+                if (!groundPlatformExists || this.isGroundPounding) {
+                    this.spawnPlatform(my.sprite.player.y - 60, true);
+                }
+            }
+            this.wasOnActualGround = onActualGround;
+
+            if (onGround) {
+                this.lastGrounded = time;
+                this.jumpsRemaining = this.maxJumps; // reset jumps when grounded
+                
+                // Reset ground pound state upon landing
+                if (this.isGroundPounding) {
+                    this.isGroundPounding = false;
+                    if (this.platformCollider) this.platformCollider.active = true;
+                }
             }
 
-            // Moving down
-            if (this.down.isDown) {
-                if (my.sprite.player.y < (game.config.height - (my.sprite.player.displayHeight/2))) {
-                    my.sprite.player.y += this.playerSpeed * dt;
-                }
-                isMoving = true;
+            // Ground pound trigger
+            if (!onGround && Phaser.Input.Keyboard.JustDown(this.shift) && !this.isGroundPounding) {
+                this.isGroundPounding = true;
+                my.sprite.player.setVelocityX(0); // Stop horizontal movement
+                if (this.platformCollider) this.platformCollider.active = false; // Disable platform collision
             }
 
-            // Moving left
-            if (this.left.isDown) {
-                if (my.sprite.player.x > (my.sprite.player.displayWidth/2)) {
-                    my.sprite.player.x -= this.playerSpeed * dt;
-                }
-                my.sprite.player.setFlipX(true); // Face left
-                my.sprite.player.facingDirection = -1; // Remember that we are facing left
-                isMoving = true;
+            // Ground pound active logic
+            if (this.isGroundPounding) {
+                my.sprite.player.setVelocityY(2000); // Force fast slam
+                this.physics.overlap(my.sprite.player, this.platforms, (player, platform) => {
+                    let explosion = this.add.sprite(platform.x, platform.y, "explosion-1").setScale(2).play("enemyExplosion");
+                    this.removePlatform(platform);
+                    this.sound.play("explosion", { volume: 0.8 });
+                });
             }
 
-            // Moving right
-            if (this.right.isDown) {
-                if (my.sprite.player.x < (game.config.width - (my.sprite.player.displayWidth/2))) {
-                    my.sprite.player.x += this.playerSpeed * dt;
+            // Move horizontally
+            if (my.sprite.player) {
+                if (this.isGroundPounding) {
+                    my.sprite.player.setVelocityX(0); // Lock movement
+                } else if (this.left.isDown) {
+                    my.sprite.player.setVelocityX(-this.playerSpeed);
+                    my.sprite.player.setFlipX(true);
+                    my.sprite.player.facingDirection = -1;
+                    isMoving = true;
+                } else if (this.right.isDown) {
+                    my.sprite.player.setVelocityX(this.playerSpeed);
+                    my.sprite.player.setFlipX(false);
+                    my.sprite.player.facingDirection = 1;
+                    isMoving = true;
+                } else {
+                    my.sprite.player.setVelocityX(0);
                 }
-                my.sprite.player.setFlipX(false);
-                my.sprite.player.facingDirection = 1; // Remember that we are facing right
-                isMoving = true;
+
+                // Jump with W — first jump uses coyote time, second is a mid-air double jump
+                if (Phaser.Input.Keyboard.JustDown(this.up) && this.jumpsRemaining > 0 && !this.isGroundPounding) {
+                    // Allow coyote-time grace for the first jump off a ledge
+                    if (!onGround && this.jumpsRemaining === this.maxJumps && (time - this.lastGrounded) > this.coyoteTime) {
+                        // Fell off a ledge and coyote time expired — costs the first jump
+                        this.jumpsRemaining--;
+                    }
+                    if (this.jumpsRemaining > 0) {
+                        my.sprite.player.setVelocityY(-this.jumpSpeed);
+                        this.jumpsRemaining--;
+                    }
+                }
             }
 
-            // Play or stop animation
-            if (isMoving) {
-                my.sprite.player.play(`walk_${this.playerColor}`, true);
-            } else {
-                my.sprite.player.stop();
+            // Play or stop animation based on horizontal movement
+            if (my.sprite.player) {
+                if (isMoving) {
+                    my.sprite.player.play(`walk_${this.playerColor}`, true);
+                } else {
+                    my.sprite.player.stop();
+                }
             }
 
             // Check for bullet being fired
             if (Phaser.Input.Keyboard.JustDown(this.space)) {
-                // Are we under our bullet quota?
-                if (my.sprite.bullet.length < this.maxBullets) {
+                if (my.sprite.player && my.sprite.bullet.length < this.maxBullets) {
                     let dir = my.sprite.player.facingDirection || 1;
-                    let offsetX = dir === -1 ? -(my.sprite.player.displayWidth/2) : (my.sprite.player.displayWidth/2);
+                    let offsetX = dir === -1 ? -(my.sprite.player.displayWidth / 2) : (my.sprite.player.displayWidth / 2);
                     let newBullet = this.add.sprite(
                         my.sprite.player.x + offsetX, my.sprite.player.y, "bullet"
                     );
-                    newBullet.setAngle(dir === -1 ? -90 : 90); // Rotate bullet to face left or right
-                    newBullet.fireDirection = dir; // Set explicit movement direction property
+                    newBullet.setAngle(dir === -1 ? -90 : 90);
+                    newBullet.fireDirection = dir;
                     my.sprite.bullet.push(newBullet);
                     this.sound.play("playerFire");
                 }
@@ -395,20 +504,20 @@ class ArcadeShooter extends Phaser.Scene {
         // This does have the impact of re-creating the bullet array on every 
         // update() call. 
         my.sprite.bullet = my.sprite.bullet.filter((bullet) => {
-            if (bullet.x < game.config.width + (bullet.displayWidth/2) && bullet.x > -(bullet.displayWidth/2)) {
+            if (bullet.x < game.config.width + (bullet.displayWidth / 2) && bullet.x > -(bullet.displayWidth / 2)) {
                 return true;
             } else {
                 bullet.destroy();
                 return false;
             }
         });
-        
+
         // Filter enemy bullets if they travel entirely off any side of the screen and destroy them
         my.sprite.enemyBullet = my.sprite.enemyBullet.filter((enemyBullet) => {
-            if (enemyBullet.x > -(enemyBullet.displayWidth/2) && 
-                enemyBullet.x < game.config.width + (enemyBullet.displayWidth/2) &&
-                enemyBullet.y > -(enemyBullet.displayHeight/2) &&
-                enemyBullet.y < game.config.height + (enemyBullet.displayHeight/2)) {
+            if (enemyBullet.x > -(enemyBullet.displayWidth / 2) &&
+                enemyBullet.x < game.config.width + (enemyBullet.displayWidth / 2) &&
+                enemyBullet.y > -(enemyBullet.displayHeight / 2) &&
+                enemyBullet.y < game.config.height + (enemyBullet.displayHeight / 2)) {
                 return true;
             } else {
                 enemyBullet.destroy();
@@ -418,8 +527,7 @@ class ArcadeShooter extends Phaser.Scene {
 
         // Filter destroyed enemies to prevent memory leaks
         my.sprite.enemies = my.sprite.enemies.filter((enemy) => {
-            // Allow bosses to persist while they hide off-screen
-            if (enemy.visible || enemy.isBoss) {
+            if (enemy.visible) {
                 return true;
             } else {
                 enemy.destroy();
@@ -427,159 +535,18 @@ class ArcadeShooter extends Phaser.Scene {
             }
         });
 
-        // Check for round progression
-        if (this.myHealth > 0 && my.sprite.enemies.filter(e => e.enemyType !== "barnacle").length === 0) {
-            // Heal player based on the round that was just completed
-            if (this.currentRound === 5) {
-                this.myHealth += 2;
-            } else {
-                this.myHealth += 1;
-            }
-            this.updateHealth(); // Ensure the HUD badges are redrawn
+        // Round progression disabled while no enemies are implemented
+        // if (this.myHealth > 0 && my.sprite.enemies.length === 0) {
+        //     this.currentRound++;
+        //     this.updateRound();
+        //     this.spawnRound(this.currentRound);
+        //     this.showRoundAnnouncement(this.currentRound);
+        // }
 
-            this.currentRound++;
-            this.updateRound();
-            this.spawnRound(this.currentRound);
-            this.showRoundAnnouncement(this.currentRound);
-        }
-
-        // Move and update enemies
+        // Move and update enemies (placeholder — new enemies will be implemented in bigZombie/smallZombie)
         for (let enemy of my.sprite.enemies) {
-            if (enemy.visible) {
-                if (enemy.enemyType === "redSnake") {
-                    // Ground Snake State Machine
-                    if (enemy.state === "hidden") {
-                        enemy.timer -= dt;
-                        if (enemy.timer <= 0) {
-                            enemy.x = Phaser.Math.Between(50, game.config.width - 50);
-                            enemy.state = "rising";
-                            enemy.play("redSnakeAnim");
-                        }
-                    } else if (enemy.state === "rising") {
-                        enemy.y -= 150 * dt;
-                        if (enemy.y <= enemy.activeY) {
-                            enemy.y = enemy.activeY;
-                            enemy.state = "active";
-                            enemy.timer = Phaser.Math.Between(1000, 2000) / 1000; // Stay up for 1 to 2 seconds
-                        }
-                    } else if (enemy.state === "active") {
-                        enemy.timer -= dt;
-                        if (enemy.timer <= 0) {
-                            enemy.state = "lowering";
-                        }
-                    } else if (enemy.state === "lowering" || enemy.state === "dead") {
-                        enemy.y += 150 * dt;
-                        if (enemy.y >= enemy.groundY) {
-                            enemy.y = enemy.groundY;
-                            if (enemy.state === "dead") {
-                                enemy.visible = false; // Will be cleaned up by the filter next frame
-                            } else {
-                                enemy.state = "hidden";
-                                enemy.stop();
-                                enemy.timer = Phaser.Math.Between(1000, 3000) / 1000; // Wait to pop up again
-                            }
-                        }
-                    }
-                } else if (enemy.enemyType === "greenBoss") {
-                    // Green Boss State Machine
-                    if (enemy.state === "hidden") {
-                        enemy.timer -= dt;
-                        if (enemy.timer <= 0) {
-                            let side = enemy.sides[enemy.sideIndex % 4];
-                            let padding = 150;
-                            if (side === "top") {
-                                enemy.x = game.config.width / 2; enemy.y = -300;
-                                enemy.targetX = game.config.width / 2; enemy.targetY = padding;
-                                enemy.setAngle(180);
-                            } else if (side === "right") {
-                                enemy.x = game.config.width + 300; enemy.y = game.config.height / 2;
-                                enemy.targetX = game.config.width - padding; enemy.targetY = game.config.height / 2;
-                                enemy.setAngle(-90);
-                            } else if (side === "bottom") {
-                                enemy.x = game.config.width / 2; enemy.y = game.config.height + 300;
-                                enemy.targetX = game.config.width / 2; enemy.targetY = game.config.height - padding;
-                                enemy.setAngle(0);
-                            } else if (side === "left") {
-                                enemy.x = -300; enemy.y = game.config.height / 2;
-                                enemy.targetX = padding; enemy.targetY = game.config.height / 2;
-                                enemy.setAngle(90);
-                            }
-                            enemy.state = "emerging";
-                            enemy.play("greenSnakeAnim", true);
-                        }
-                    } else if (enemy.state === "emerging") {
-                        let dx = enemy.targetX - enemy.x;
-                        let dy = enemy.targetY - enemy.y;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-                        if (dist < 5) {
-                            enemy.x = enemy.targetX; enemy.y = enemy.targetY;
-                            enemy.state = "firing";
-                            enemy.timer = 0.5; // Quick pause before firing
-                        } else {
-                            enemy.x += (dx / dist) * 150 * dt;
-                            enemy.y += (dy / dist) * 150 * dt;
-                        }
-                    } else if (enemy.state === "firing") {
-                        enemy.timer -= dt;
-                        if (enemy.timer <= 0) {
-                            // Fire in 8 directions
-                            for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 4) {
-                                let newBullet = this.add.sprite(enemy.x, enemy.y, "snake");
-                                newBullet.play("enemyBulletAnim");
-                                newBullet.vx = Math.cos(angle) * this.enemyBulletSpeed;
-                                newBullet.vy = Math.sin(angle) * this.enemyBulletSpeed;
-                                newBullet.rotation = angle;
-                                my.sprite.enemyBullet.push(newBullet);
-                            }
-                            this.sound.play("enemyFire");
-                            enemy.state = "retreating";
-                        }
-                    } else if (enemy.state === "retreating") {
-                        let side = enemy.sides[enemy.sideIndex % 4];
-                        let offX = enemy.x, offY = enemy.y;
-                        if (side === "top") offY = -300;
-                        else if (side === "right") offX = game.config.width + 300;
-                        else if (side === "bottom") offY = game.config.height + 300;
-                        else if (side === "left") offX = -300;
-                        
-                        let dx = offX - enemy.x;
-                        let dy = offY - enemy.y;
-                        let dist = Math.sqrt(dx*dx + dy*dy);
-                        if (dist < 5) {
-                            enemy.state = "hidden";
-                            enemy.timer = 1; // Wait 1 second before popping up on next side
-                            enemy.sideIndex++;
-                        } else {
-                            enemy.x += (dx / dist) * 150 * dt;
-                            enemy.y += (dy / dist) * 150 * dt;
-                        }
-                    }
-                } else if (enemy.enemyType === "barnacle") {
-                    // Barnacles are attached to the walls and act as stationary hazards
-                } else {
-                    // Normal Horizontal Enemy Movement
-                    enemy.x -= this.enemySpeed * dt;
-
-                    // Snake-like movement on the Y axis
-                    enemy.y = enemy.startY + Math.sin((time / 1000) * 3 + enemy.timeOffset) * 50;
-
-                    // Enemy firing logic
-                    enemy.shootTimer -= dt;
-                    if (enemy.shootTimer <= 0) {
-                        let newBullet = this.add.sprite(enemy.x - (enemy.displayWidth/2), enemy.y, "snake");
-                        newBullet.setAngle(180); // Rotate to face left
-                        newBullet.play("enemyBulletAnim");
-                        this.sound.play("enemyFire");
-                        my.sprite.enemyBullet.push(newBullet);
-                        enemy.shootTimer = Phaser.Math.Between(1500, 4000) / 1000; // Reset timer to between 1.5 to 4 seconds
-                    }
-
-                    // Loop enemy back to the left side if they fall off screen
-                    if (enemy.x < -(enemy.displayWidth/2)) {
-                        enemy.x = game.config.width + Phaser.Math.Between(50, 100);
-                        enemy.startY = Phaser.Math.Between(50, game.config.height - 50);
-                    }
-                }
+            if (enemy.visible && enemy.update) {
+                enemy.update(time, dt);
             }
         }
 
@@ -587,78 +554,26 @@ class ArcadeShooter extends Phaser.Scene {
         for (let bullet of my.sprite.bullet) {
             for (let enemy of my.sprite.enemies) {
                 if (enemy.visible && this.collides(enemy, bullet)) {
-                    if (enemy.enemyType === "redSnake" && (enemy.state === "dead" || enemy.state === "hidden")) continue;
-                    if (enemy.enemyType === "greenBoss" && enemy.state === "hidden") continue;
+                    bullet.x = game.config.width + 100; // Move bullet offscreen to be despawned
 
-                    bullet.x = game.config.width + 100; // Move bullet fully offscreen right to be despawned
-
-                    if (enemy.enemyType === "redSnake") {
+                    // Generic enemy hit logic
+                    if (enemy.hp !== undefined) {
                         enemy.hp -= 1;
                         if (enemy.hp <= 0) {
-                            enemy.state = "dead";
-                            enemy.stop();
-                            enemy.setTexture("redSnake_dead");
-                            
                             let enemyExplosion = this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(2).play("enemyExplosion");
-                            this.myScore += enemy.scorePoints;
-                            this.updateScore();
-                            this.sound.play("explosion", { volume: 1 });
-                        } else {
-                            // Red snake took a hit but is still alive
-                            this.sound.play("explosion", { volume: 0.5 });
-                            
-                            // Flash the dead texture for 0.3 seconds
-                            enemy.stop();
-                            enemy.setTexture("redSnake_hit");
-                            this.time.delayedCall(300, () => {
-                                // Make sure it hasn't died or gone back underground before resuming animation
-                                if (enemy && enemy.active && enemy.hp > 0 && enemy.state !== "hidden") {
-                                    enemy.play("redSnakeAnim");
-                                }
-                            });
-                        }
-                    } else if (enemy.enemyType === "barnacle") {
-                        // Barnacle hit logic - takes multiple hits as a bulky obstacle!
-                        enemy.hp -= 1;
-                        if (enemy.hp <= 0) {
-                            let enemyExplosion = this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(4).play("enemyExplosion");
                             enemy.visible = false;
                             enemy.x = -100;
-                            this.myScore += enemy.scorePoints;
+                            this.myScore += (enemy.scorePoints || 100);
                             this.updateScore();
                             this.sound.play("explosion", { volume: 1 });
                         } else {
                             this.sound.play("explosion", { volume: 0.5 });
-                            enemy.stop();
-                            enemy.setTexture("barnacleHit");
-                            this.time.delayedCall(150, () => {
-                                if (enemy && enemy.active && enemy.hp > 0) enemy.play("barnacleAnim");
-                            });
-                        }
-                    } else if (enemy.enemyType === "greenBoss") {
-                        enemy.hp -= 1;
-                        if (enemy.hp <= 0) {
-                            let enemyExplosion = this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(5).play("enemyExplosion");
-                            enemy.visible = false;
-                            enemy.isBoss = false; // So it gets cleaned up by the array filter
-                            enemy.x = -1000;
-                            this.myScore += enemy.scorePoints;
-                            this.updateScore();
-                            this.sound.play("explosion", { volume: 1 });
-                        } else {
-                            this.sound.play("explosion", { volume: 0.5 });
-                            enemy.stop();
-                            enemy.setTexture("greenSnake_hit");
-                            this.time.delayedCall(150, () => {
-                                if (enemy && enemy.active && enemy.hp > 0 && enemy.state !== "hidden") enemy.play("greenSnakeAnim");
-                            });
                         }
                     } else {
-                        // Normal enemy hit logic
                         let enemyExplosion = this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(2).play("enemyExplosion");
                         enemy.visible = false;
                         enemy.x = -100;
-                        this.myScore += enemy.scorePoints;
+                        this.myScore += (enemy.scorePoints || 100);
                         this.updateScore();
                         this.sound.play("explosion", { volume: 1 });
                     }
@@ -671,68 +586,29 @@ class ArcadeShooter extends Phaser.Scene {
             // 1. Player vs Enemy Body Collision
             for (let enemy of my.sprite.enemies) {
                 if (enemy.visible && this.collides(my.sprite.player, enemy)) {
-                    if (enemy.enemyType === "redSnake" && (enemy.state === "dead" || enemy.state === "hidden")) continue;
-                    if (enemy.enemyType === "greenBoss" && enemy.state === "hidden") continue;
+                    let playerExplosion = this.add.sprite(my.sprite.player.x, my.sprite.player.y, "explosion-1").setScale(2).play("enemyExplosion");
 
-                    let playerExplosion = this.add.sprite(my.sprite.player.x, my.sprite.player.y, "explosion-1-d").setScale(2).play("enemyExplosion");
+                    // Destroy the enemy on contact
+                    enemy.visible = false;
+                    enemy.x = -100;
 
-                    if (enemy.enemyType === "redSnake") {
-                        // Force the snake down when it damages the player
-                        enemy.state = "dead";
-                        enemy.stop();
-                        enemy.setTexture("redSnake_dead");
-                    } else if (enemy.enemyType === "barnacle") {
-                        // Barnacle survives player contact — it uses HP like bullet hits
-                        enemy.hp -= 1;
-                        if (enemy.hp <= 0) {
-                            this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(4).play("enemyExplosion");
-                            enemy.visible = false;
-                            enemy.x = -100;
-                            this.myScore += enemy.scorePoints;
-                            this.updateScore();
-                        } else {
-                            enemy.stop();
-                            enemy.setTexture("barnacleHit");
-                            this.time.delayedCall(150, () => {
-                                if (enemy && enemy.active && enemy.hp > 0) enemy.play("barnacleAnim");
-                            });
+                    if (!this.invulnerable && !this.isGroundPounding) {
+                        this.myHealth -= 1;
+
+                        // Explode the health badge when taking damage
+                        if (this.myHealth >= 0) {
+                            let lostIconX = 30 + this.myHealth * 40;
+                            this.add.sprite(lostIconX, 570, "explosion-1").setScale(1.5).play("enemyExplosion");
                         }
-                    } else if (enemy.enemyType === "greenBoss") {
-                        enemy.hp -= 1;
-                        if (enemy.hp <= 0) {
-                            this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(5).play("enemyExplosion");
-                            enemy.visible = false;
-                            enemy.isBoss = false;
-                            enemy.x = -1000;
-                            this.myScore += enemy.scorePoints;
-                            this.updateScore();
-                        } else {
-                            enemy.stop();
-                            enemy.setTexture("greenSnake_hit");
-                            this.time.delayedCall(150, () => {
-                                if (enemy && enemy.active && enemy.hp > 0 && enemy.state !== "hidden") enemy.play("greenSnakeAnim");
-                            });
+
+                        this.updateHealth();
+                        this.sound.play("explosion", { volume: 1 });
+
+                        if (this.myHealth <= 0) {
+                            my.sprite.player.destroy();
+                            this.gameOver = true;
+                            my.text.gameOver.visible = true;
                         }
-                    } else {
-                        enemy.visible = false;
-                        enemy.x = -100;
-                    }
-
-                    this.myHealth -= 1;
-;                    
-                    // Explode the health badge when taking damage
-                    if (this.myHealth >= 0) {
-                        let lostIconX = 30 + this.myHealth * 40;
-                        this.add.sprite(lostIconX, 570, "explosion-1").setScale(1.5).play("enemyExplosion");
-                    }
-                    
-                    this.updateHealth();
-                    this.sound.play("explosion", { volume: 1 });
-
-                    if (this.myHealth <= 0) {
-                        my.sprite.player.destroy();
-                        this.gameOver = true;
-                        my.text.gameOver.visible = true;
                     }
                 }
             }
@@ -745,24 +621,26 @@ class ArcadeShooter extends Phaser.Scene {
                     // clear out enemy bullet -- put y offscreen bottom, will get reaped next update
                     enemyBullet.y = game.config.height + 100;
                     // Update health
-                    this.myHealth -= 1;
-                    
-                    // Explode the health badge  
-                    if (this.myHealth >= 0) {
-                        let lostIconX = 30 + this.myHealth * 40;
-                        this.add.sprite(lostIconX, 570, "explosion-1").setScale(1.5).play("enemyExplosion");
-                    }
-                    
-                    this.updateHealth();
-                    // Play sound
-                    this.sound.play("explosion", {
-                        volume: 1   // Can adjust volume using this, goes from 0 to 1
-                    });
+                    if (!this.invulnerable && !this.isGroundPounding) {
+                        this.myHealth -= 1;
 
-                    if (this.myHealth <= 0){
-                        my.sprite.player.destroy();
-                        this.gameOver = true;
-                        my.text.gameOver.visible = true;
+                        // Explode the health badge  
+                        if (this.myHealth >= 0) {
+                            let lostIconX = 30 + this.myHealth * 40;
+                            this.add.sprite(lostIconX, 570, "explosion-1").setScale(1.5).play("enemyExplosion");
+                        }
+
+                        this.updateHealth();
+                        // Play sound
+                        this.sound.play("explosion", {
+                            volume: 1   // Can adjust volume using this, goes from 0 to 1
+                        });
+
+                        if (this.myHealth <= 0) {
+                            my.sprite.player.destroy();
+                            this.gameOver = true;
+                            my.text.gameOver.visible = true;
+                        }
                     }
                 }
             }
@@ -785,17 +663,142 @@ class ArcadeShooter extends Phaser.Scene {
         }
     }
 
+    spawnPlatform(forcedY = null, isGroundSpawn = false) {
+        let x = game.config.width + this.platformConfig.spawnBufferX;
+
+        // Choose zone index: first few go to bottom zone, rest random
+        let zoneIndex;
+        if (this.platformSpawnCount < this.platformConfig.initialLowCount) {
+            zoneIndex = this.numZones - 1; // bottom-most zone
+        } else {
+            zoneIndex = Phaser.Math.Between(0, this.numZones - 1);
+        }
+
+        let zone = this.zones[zoneIndex];
+
+        // Select a random platform sprite
+        let spriteKey = Phaser.Utils.Array.GetRandom(this.platformSpriteKeys);
+
+        // Create the platform sprite with configured scale
+        let pScale = this.platformConfig.platformScale || 1.5;
+        let platform = this.platforms.create(x, 0, spriteKey).setOrigin(0.5).setScale(pScale);
+
+        // Use the raw texture dimensions for the physics body (setSize works in unscaled space)
+        let textureWidth = platform.width;
+        let textureHeight = platform.height;
+        let spriteHeight = platform.displayHeight;
+
+        let children = this.platforms.getChildren();
+        // The newly created platform is at the end of the children array.
+        let lastPlatform = children.length > 1 ? children[children.length - 2] : null;
+        
+        // Calculate player's max jump height dynamically
+        let jumpHeight = (this.jumpSpeed * this.jumpSpeed) / (2 * this.physics.world.gravity.y);
+        let maxRise = Math.floor(0.66 * jumpHeight);
+        let minDistance = spriteHeight + 40; // To prevent any overlap on the Y axis
+
+        let validY = false;
+        let attempts = 0;
+        let y = 0;
+
+        if (forcedY !== null) {
+            y = forcedY;
+        } else {
+            while (!validY && attempts < 50) {
+                y = Phaser.Math.Between(zone.top + Math.floor(spriteHeight / 2), zone.bottom - Math.floor(spriteHeight / 2));
+                
+                // Rule 1: If spawning higher (lower Y value), it cannot exceed 2/3 of player's jump
+                if (lastPlatform && y < lastPlatform.y && (lastPlatform.y - y) > maxRise) {
+                    attempts++;
+                    continue;
+                }
+
+                // Rule 3: No two platforms onscreen can overlap on the Y axis
+                let overlaps = false;
+                for (let i = 0; i < children.length - 1; i++) { // Check against all EXCEPT the newly created one
+                    if (Math.abs(y - children[i].y) < minDistance) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+
+                if (overlaps) {
+                    attempts++;
+                    continue;
+                }
+
+                validY = true;
+            }
+
+            // If we failed to find a valid non-overlapping Y after 50 attempts, enforce the jump height rule
+            if (!validY && lastPlatform && y < lastPlatform.y && (lastPlatform.y - y) > maxRise) {
+                y = lastPlatform.y - maxRise;
+                y = Math.max(zone.top + Math.floor(spriteHeight / 2), y);
+            }
+        }
+
+        platform.y = y;
+
+        // Use constant platform speed
+        let speed = this.platformConfig.platformSpeed;
+
+        this.platformSpawnCount += 1;
+        platform.isGroundSpawn = isGroundSpawn;
+        this.addPlatformInstance(platform, textureWidth, textureHeight, speed, zoneIndex);
+    }
+
+    addPlatformInstance(platform, spriteWidth, spriteHeight, speed, zoneIndex) {
+        platform.body.setImmovable(true);
+        platform.body.allowGravity = false;
+        platform.body.setCollideWorldBounds(false);
+        platform.body.setSize(spriteWidth, spriteHeight, true);
+        platform.body.setDrag(0);
+        platform.body.setAngularVelocity(0);
+        platform.body.setMaxVelocity(9999, 0);
+        platform.body.setVelocityX(-Math.abs(speed));
+
+        if (this.platformConfig.oneWay) {
+            platform.body.checkCollision.up = true;
+            platform.body.checkCollision.down = false;
+            platform.body.checkCollision.left = false;
+            platform.body.checkCollision.right = false;
+        }
+
+        platform._spawnMeta = { zoneIndex: zoneIndex, speed: speed, patternId: null };
+        this.platforms.add(platform);
+    }
+
     // A center-radius AABB collision check
     collides(a, b) {
-        if (Math.abs(a.x - b.x) > (a.displayWidth/2 + b.displayWidth/2)) return false;
-        if (Math.abs(a.y - b.y) > (a.displayHeight/2 + b.displayHeight/2)) return false;
+        if (Math.abs(a.x - b.x) > (a.displayWidth / 2 + b.displayWidth / 2)) return false;
+        if (Math.abs(a.y - b.y) > (a.displayHeight / 2 + b.displayHeight / 2)) return false;
         return true;
+    }
+
+    // One-way platform logic is now handled natively via platform.body.checkCollision flags
+
+    removePlatform(platform) {
+        if (!platform) return;
+        let meta = platform._spawnMeta || {};
+        if (meta.patternId) {
+            let p = this.patterns[meta.patternId];
+            if (p) {
+                p.remaining = Math.max(0, p.remaining - 1);
+                if (p.remaining === 0) this.onPatternComplete(meta.patternId);
+            }
+        }
+        platform.destroy();
+    }
+
+    onPatternComplete(patternId) {
+        console.log("Pattern complete:", patternId);
+        // Placeholder: pattern selection logic could be added here
     }
 
     updateScore() {
         let my = this.my;
         my.text.score.setText("Score " + this.myScore);
-        
+
         // Check if we beat the high score, update value and color if we did
         if (this.myScore > this.highScore) {
             this.highScore = this.myScore;
@@ -815,9 +818,9 @@ class ArcadeShooter extends Phaser.Scene {
 
     updateHealth() {
         let my = this.my;
-        
+
         if (!my.sprite.healthIcons) my.sprite.healthIcons = [];
-        
+
         // Clear existing icons
         for (let icon of my.sprite.healthIcons) {
             icon.destroy();
@@ -833,134 +836,20 @@ class ArcadeShooter extends Phaser.Scene {
 
     updateRound() {
         let my = this.my;
-        if (this.currentRound === 5) {
-            my.text.round.setText("Boss Round");
-        } else {
-            my.text.round.setText("Round " + this.currentRound);
-        }
+        my.text.round.setText("Round " + this.currentRound);
     }
 
     showRoundAnnouncement(round) {
         let my = this.my;
-        if (round === 5) {
-            my.text.roundAnnounce.setText("Boss Round");
-        } else {
-            my.text.roundAnnounce.setText("Round " + round);
-        }
+        my.text.roundAnnounce.setText("Round " + round);
         my.text.roundAnnounce.visible = true;
         this.time.delayedCall(2000, () => {
             my.text.roundAnnounce.visible = false;
         });
     }
 
-    spawnBoss(isMainBoss = false) {
-        let my = this.my;
-        let boss = this.add.sprite(-1000, -1000, "greenSnake").setScale(3);
-        boss.enemyType = "greenBoss";
-        boss.hp = isMainBoss ? 25 : 10; // Lower HP when spawning as a normal enemy
-        boss.scorePoints = isMainBoss ? 5000 : 1000;
-        boss.state = "hidden";
-        boss.timer = Phaser.Math.Between(15, 30) / 10; // Staggered 1.5 to 3.0 seconds until first appearance
-        boss.sideIndex = Phaser.Math.Between(0, 3); // Start on random side
-        boss.sides = ["top", "right", "bottom", "left"];
-        boss.isBoss = true; // Prevents being culled while off-screen
-        
-        my.sprite.enemies.push(boss);
-    }
-
     spawnRound(round) {
-        // Check for boss round
-        if (round === 5) {
-            this.spawnBoss(true);
-            return; // Skip normal spawning
-        }
-        
-        // Total enemies grows much slower with round number
-        let budget = 4 + round;
-
-        let counts = { slimeBlock: 0, barnacle: 0, redSnake: 0, greenBoss: 0 };
-        
-        // Limit barnacles to a maximum of 2 per round
-        counts.barnacle = Math.min(2, Math.ceil(round / 2));
-
-        // A few red snakes (unlocks at round 2, maxes out at 3 per round)
-        if (round >= 2) {
-            if (round > 5) {
-                counts.greenBoss = 1; // Limit to only 1 mini-boss per round
-                counts.redSnake = 2; // Fill the rest of the slots with regular red snakes
-            } else {
-                counts.redSnake = Math.min(3, Math.floor(round / 2));
-            }
-        }
-
-        // The rest of the budget goes primarily to green enemies (slimeBlock)
-        let allocated = counts.barnacle + counts.redSnake + counts.greenBoss;
-        counts.slimeBlock = Math.max(1, budget - allocated);
-
-        this.spawnEnemies(counts.slimeBlock, counts.redSnake, counts.barnacle, counts.greenBoss);
-    }
-
-    spawnEnemies(enemy1 = 0, enemy2 = 0, enemy3 = 0, enemy4 = 0) {
-        let my = this.my;
-        
-        let spawnConfig = [
-            { count: enemy1, type: "slimeBlock", scale: 0.5, score: 100 },
-            { count: enemy2, type: "redSnake", scale: 1, score: 300 },
-            { count: enemy3, type: "barnacle", scale: 1.5, score: 150 }
-        ];
-
-        for (let config of spawnConfig) {
-            for (let i = 0; i < config.count; i++) {
-                let startX = game.config.width + Phaser.Math.Between(50, 300);
-                let startY = Phaser.Math.Between(50, game.config.height - 50);
-
-                let enemy = this.add.sprite(startX, startY, config.type);
-                enemy.setScale(config.scale);
-                enemy.scorePoints = config.score;
-                enemy.enemyType = config.type;
-
-                if (config.type === "redSnake") {
-                    enemy.scale = 2.5;
-                    enemy.x = Phaser.Math.Between(50, game.config.width - 50);
-                    enemy.y = game.config.height + 200; // Start hidden safely below the screen
-                    enemy.state = "hidden";
-                    enemy.timer = Phaser.Math.Between(1000, 3000) / 1000;
-                    enemy.hp = 5;
-                    enemy.groundY = game.config.height + 200;
-                    enemy.activeY = (game.config.height / 2) + 150  // Pop up to the middle of the screen
-                } else if (config.type === "barnacle") {
-                    enemy.hp = 8; // Give it high health so it acts as a barrier
-                    let wall = Phaser.Math.Between(0, 2); // 0=Top, 1=Right, 2=Bottom (skip left wall — player spawns there)
-                    let padding = 40; // Increased padding to push this massive hazard further onto the screen
-
-                    if (wall === 0) { // Top Wall
-                        enemy.x = Phaser.Math.Between(padding, game.config.width - padding);
-                        enemy.y = padding;
-                        enemy.setAngle(180); // Face down
-                    } else if (wall === 1) { // Right Wall
-                        enemy.x = game.config.width - padding;
-                        enemy.y = Phaser.Math.Between(padding, game.config.height - padding);
-                        enemy.setAngle(-90); // Face left
-                    } else { // Bottom Wall
-                        enemy.x = Phaser.Math.Between(padding, game.config.width - padding);
-                        enemy.y = game.config.height - padding;
-                        enemy.setAngle(0); // Face up
-                    }
-                    enemy.play("barnacleAnim");
-                } else {
-                    enemy.shootTimer = Phaser.Math.Between(1000, 3000) / 1000;
-                    enemy.startY = startY; 
-                    enemy.timeOffset = Math.random() * Math.PI * 2; 
-                }
-
-                my.sprite.enemies.push(enemy);
-            }
-        }
-
-        // Spawn bosses if they took the red snake slot
-        for (let i = 0; i < enemy4; i++) {
-            this.spawnBoss(false);
-        }
+        // TODO: Implement new enemy spawning using bigZombie and smallZombie
+        // For now this is a placeholder
     }
 }
-         
