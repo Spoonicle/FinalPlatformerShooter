@@ -35,31 +35,9 @@ class ArcadeShooter extends Phaser.Scene {
     }
 
     preload() {
+        Player.preload(this);
+
         this.load.setPath("./assets/");
-        this.load.spritesheet("xeno-grunt-range-attack", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-range-attack.png", {
-            frameWidth: 320,
-            frameHeight: 320
-        });
-        this.load.spritesheet("xeno-grunt-prep-jump", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-prep-jump.png", {
-            frameWidth: 320,
-            frameHeight: 320
-        });
-        this.load.spritesheet("xeno-grunt-run", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-run.png", {
-            frameWidth: 320, frameHeight: 320
-        });
-        this.load.spritesheet("xeno-grunt-idle", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-idle.png", {
-            frameWidth: 320, frameHeight: 320
-        });
-        this.load.spritesheet("xeno-grunt-attack-2", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-attack-2.png", {
-            frameWidth: 320, frameHeight: 320
-        });
-        this.load.spritesheet("xeno-grunt-attack-1", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-attack-1.png", {
-            frameWidth: 320, frameHeight: 320
-        });
-        this.load.image("xeno-grunt-knockback", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-knockback.png");
-        this.load.image("xeno-grunt-jumping", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-jumping.png");
-        this.load.image("xeno-grunt-death", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-death-grounded.png");
-        this.load.image("bullet", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-range-projectile.png");
         for (let i = 0; i <= 5; i++) {
             this.load.image(`bg${i}`, `${i}.png`);
         }
@@ -127,23 +105,13 @@ class ArcadeShooter extends Phaser.Scene {
         this.load.audio("explosion", "explosionCrunch_000.ogg");
         this.load.audio("explosion2", "explosionCrunch_001.ogg");
         this.load.audio("explosion3", "explosionCrunch_002.ogg");
-        this.load.audio("playerFire", "laserRetro_001.ogg");
         this.load.audio("enemyFire", "laserRetro_004.ogg");
         this.load.audio("space_audio", "space_audio.mp3");
         
-        // Load Reload Sound Effects
-        // Note: Change '.wav' to '.ogg' or '.mp3' if your files use a different extension!
-        this.load.audio("revolverSpin", "RevolverSpin.mp3");
-        this.load.audio("revolverCock", "revolverCock.mp3");
-        
         this.load.audio("axeHitAudio", "axeHitAudio.mp3");
         this.load.audio("axeThrowAudio", "axeThrowAudio.mp3");
-
+ 
         this.load.audio("giantWalk", "giantWalk.mp3");
-        this.load.audio("playerHit", "playerHitSound.mp3");
-        this.load.audio("shiftSmash", "ShiftSmash.mp3");
-        this.load.audio("playerJumping", "playerJumping.mp3");
-        this.load.audio("gameOver", "gameOver.mp3");
         this.load.audio("sillyBoing", "sillyBoing.mp3");
 
         this.load.setPath("./assets/zombieSounds/");
@@ -211,37 +179,7 @@ class ArcadeShooter extends Phaser.Scene {
             hideOnComplete: true
         });
 
-        this.anims.create({
-            key: "xeno-grunt-range-attack",
-            frames: this.anims.generateFrameNumbers("xeno-grunt-range-attack", { start: 0, end: 6 }),
-            frameRate: 15,
-            repeat: 0
-        });
 
-        this.anims.create({
-            key: "xeno-grunt-run",
-            frames: this.anims.generateFrameNumbers("xeno-grunt-run", { start: 0, end: 7 }),
-            frameRate: 15,
-            repeat: -1
-        });
-        this.anims.create({
-            key: "xeno-grunt-idle",
-            frames: this.anims.generateFrameNumbers("xeno-grunt-idle", { start: 0, end: 1 }),
-            frameRate: 4,
-            repeat: -1
-        });
-        this.anims.create({
-            key: "xeno-grunt-attack-2",
-            frames: this.anims.generateFrameNumbers("xeno-grunt-attack-2", { start: 0, end: 6 }),
-            frameRate: 15,
-            repeat: 0
-        });
-        this.anims.create({
-            key: "xeno-grunt-attack-1",
-            frames: this.anims.generateFrameNumbers("xeno-grunt-attack-1", { start: 0, end: 8 }),
-            frameRate: 15,
-            repeat: 0
-        });
 
         // Dynamically slice the loaded zombie images into frames based on the file names
         const zombieConfigs = [
@@ -410,34 +348,6 @@ class ArcadeShooter extends Phaser.Scene {
     initGame() {
         let my = this.my;
 
-        // Reset game state variables
-        this.gameOver = false;
-        this.myHealth = 3;
-        this.myScore = 0;
-        this.zombieGroupTimer = 4000;    // Time until next group of small zombies
-        this.zombiesToSpawn = 0;         // Number of zombies to spawn in the current cluster
-        this.zombieSpawnTimer = 0;       // Fast timer between individual spawns in a cluster
-        this.bigZombieSpawnTimer = 12000; // Start spawning big zombies after 15 seconds
-        this.zombieAmbientTimer = 4000;  // Start playing horde sounds when zombies arrive
-        this.jumperZombieSpawnTimer = 3000; // Initial timer for jumping zombies once score hits 500
-        this.bgScrollSpeed = 100;        // Reset parallax speed
-        this.currentPlatformSpeed = this.platformConfig.platformSpeed;
-        this.bulletsInChamber = 6;       // Reset ammo on restart
-        this.isReloading = false;        // Reset reloading state
-        this.lastSlamTime = 0;           // Reset slam cooldown timer
-        this.slamReady = true;           // Reset slam readiness flag
-        this.damageInvulnTimer = 0;      // Reset damage i-frames timer
-        this.knockbackTimer = 0;         // Reset knockback visual timer
-        // Testing: make player invulnerable to damage while we test
-        this.invulnerable = false;
-        if (my.text && my.text.invul) my.text.invul.visible = this.invulnerable;
-
-        // Update HUD text (safe to call because text objects exist before initGame() is ever called)
-        if (my.text.gameOver) my.text.gameOver.visible = false;
-        this.updateHealth();
-        this.updateScore();
-        this.updateHighScoreUI();
-
         // Destroy any leftover sprites from a previous game
         for (let enemy of my.sprite.enemies) {
             if (enemy.walkSound) enemy.walkSound.stop();
@@ -461,41 +371,35 @@ class ArcadeShooter extends Phaser.Scene {
         if (my.sprite.player) my.sprite.player.destroy();
         if (my.sprite.deadPlayer) my.sprite.deadPlayer.destroy();
 
-        my.sprite.player = this.physics.add.sprite(40, game.config.height - 400, "xeno-grunt-range-attack", 0).setScale(0.45).setCollideWorldBounds(true);
-        my.sprite.player.body.setSize(70, 95, false); // Adjusted height to be 5 pixels taller
-        my.sprite.player.body.setOffset(70, 225); // Push Y offset down to keep feet on the ground
-        my.sprite.player.facingDirection = 1;
+        // Spawn player sprite using Player class
+        my.sprite.player = new Player(this, 40, game.config.height - 400);
+
+        // Reset game state variables
+        this.gameOver = false;
+        this.myScore = 0;
+        this.zombieGroupTimer = 4000;    // Time until next group of small zombies
+        this.zombiesToSpawn = 0;         // Number of zombies to spawn in the current cluster
+        this.zombieSpawnTimer = 0;       // Fast timer between individual spawns in a cluster
+        this.bigZombieSpawnTimer = 12000; // Start spawning big zombies after 15 seconds
+        this.zombieAmbientTimer = 4000;  // Start playing horde sounds when zombies arrive
+        this.jumperZombieSpawnTimer = 3000; // Initial timer for jumping zombies once score hits 500
+        this.bgScrollSpeed = 100;        // Reset parallax speed
+        this.currentPlatformSpeed = this.platformConfig.platformSpeed;
+
+        // Update HUD text
+        if (my.text.gameOver) my.text.gameOver.visible = false;
+        this.updateHealth();
+        this.updateScore();
+        this.updateHighScoreUI();
+
+        // Setup physics colliders
         this.physics.add.collider(my.sprite.player, this.ground);
-        // Standard collider; one-way behavior is handled via checkCollision flags on each platform
         this.platformCollider = this.physics.add.collider(my.sprite.player, this.platforms);
-        this.isGroundPounding = false;
-        this.wasOnActualGround = false;
     }
 
     update(time, delta) {
         let my = this.my;
         let dt = delta / 1000;
-
-        // Handle damage invulnerability timer and flashing effect
-        if (this.damageInvulnTimer > 0) {
-            this.damageInvulnTimer -= delta;
-            if (my.sprite.player) {
-                my.sprite.player.setAlpha(Math.floor(time / 100) % 2 === 0 ? 0.3 : 1);
-            }
-            if (this.damageInvulnTimer <= 0 && my.sprite.player) {
-                my.sprite.player.setAlpha(1); // Ensure alpha resets cleanly when done
-            }
-        }
-        if (this.knockbackTimer > 0) {
-            this.knockbackTimer -= delta;
-        }
-
-        // Debug: toggle invulnerability at runtime with I
-        if (Phaser.Input.Keyboard.JustDown(this.iKey)) {
-            this.invulnerable = !this.invulnerable;
-            if (my.text && my.text.invul) my.text.invul.visible = this.invulnerable;
-            console.log("Invulnerable:", this.invulnerable);
-        }
 
         // Slow the parallax background down if the game is over
         if (this.gameOver) {
@@ -537,6 +441,11 @@ class ArcadeShooter extends Phaser.Scene {
         }
 
         if (this.gameState === "PLAYING" && !this.gameOver) {
+            // Update player using Player class component
+            if (my.sprite.player && my.sprite.player.active) {
+                my.sprite.player.update(time, delta);
+            }
+
             // Increase platform speed over time (e.g., 1 pixel per second)
             this.currentPlatformSpeed += 1 * dt;
 
@@ -594,7 +503,6 @@ class ArcadeShooter extends Phaser.Scene {
                 this.zombieAmbientTimer = Phaser.Math.Between(400, 1500); 
             }
 
-
             // Update dead zombie velocities to match the world speed and their momentum
             for (let dead of my.sprite.deadEnemies) {
                 if (dead.body && dead.baseSpeed !== undefined) {
@@ -617,321 +525,22 @@ class ArcadeShooter extends Phaser.Scene {
             });
         }
 
-        if (this.myHealth > 0) {
-            let isMoving = false;
-            // Improved ground detection using blocked/touching/onFloor
-            let onGround = false;
-            let onActualGround = false;
-            if (my.sprite.player && my.sprite.player.body) {
-                onGround = my.sprite.player.body.blocked.down || my.sprite.player.body.touching.down || my.sprite.player.body.onFloor();
-
-                // Check if the player is specifically touching the ground object at the bottom of the screen
-                if (onGround && my.sprite.player.body.bottom >= this.ground.y - (this.ground.height / 2) - 1) {
-                    onActualGround = true;
-                }
+        // Update Slam Cooldown UI
+        if (this.slamBar && my.sprite.player && my.sprite.player.active) {
+            this.slamBar.clear();
+            let p = my.sprite.player;
+            if (p.slamReady) {
+                this.slamBar.fillStyle(0x00ff00, 1); // Green when ready
+                this.slamBar.fillRect(90, 570, 100, 16);
+            } else {
+                let elapsed = time - p.lastSlamTime;
+                let ratio = Math.max(0, Math.min(elapsed / 2000, 1));
+                this.slamBar.fillStyle(0xffaa00, 1); // Orange when recharging
+                this.slamBar.fillRect(90, 570, 100 * ratio, 16);
             }
-
-            if (onActualGround && !this.wasOnActualGround) {
-                // Check if a ground-spawned platform already exists on screen
-                let groundPlatformExists = this.platforms.getChildren().some(p => p.isGroundSpawn);
-                if (!groundPlatformExists || this.isGroundPounding) {
-                    this.spawnPlatform(my.sprite.player.y - 60, true);
-                }
-            }
-            this.wasOnActualGround = onActualGround;
-
-            if (onGround) {
-                this.lastGrounded = time;
-                this.jumpsRemaining = this.maxJumps; // reset jumps when grounded
-
-                // Reset ground pound state upon landing
-                if (this.isGroundPounding) {
-                    this.isGroundPounding = false;
-                    if (this.platformCollider) this.platformCollider.active = true;
-                    
-                    // Trigger outward shockwave explosions
-                    let px = my.sprite.player.x;
-                    let py = my.sprite.player.y + 40; // Ground level
-                    
-                    for (let i = 0; i < 3; i++) {
-                        this.time.delayedCall(i * 60, () => {
-                            if (!my.sprite.player || !my.sprite.player.active) return;
-                            
-                            let spawnExplosionAndKill = (exX) => {
-                                this.add.sprite(exX, py, "explosion-1").setScale(2).play("enemyExplosion");
-                                for (let enemy of my.sprite.enemies) {
-                                    if (enemy.visible) {
-                                        let dist = Math.abs(exX - enemy.x);
-                                        let yDist = Math.abs(py - enemy.y);
-                                        if (dist < 80 && yDist < 150) { // Check rectangular bounds
-                                            this.playZombieDeathVisual(enemy);
-                                            enemy.visible = false;
-                                            enemy.x = -100;
-                                            this.myScore += (enemy.scorePoints || 100);
-                                            this.updateScore();
-                                            let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
-                                            this.sound.play(deathSound, { volume: 1 });
-                                        }
-                                    }
-                                }
-                            };
-
-                            if (i === 0) {
-                                spawnExplosionAndKill(px);
-                            } else {
-                                spawnExplosionAndKill(px - (i * 90));
-                                spawnExplosionAndKill(px + (i * 90));
-                            }
-                            this.sound.play("explosion", { volume: 0.4 });
-                        });
-                    }
-                }
-            }
-
-            // Check if slam cooldown just finished
-            if (this.myHealth > 0 && !this.slamReady && (time - this.lastSlamTime > 2000)) {
-                this.slamReady = true;
-            }
-            
-            // Update Slam Cooldown UI
-            if (this.slamBar) {
-                this.slamBar.clear();
-                if (this.slamReady) {
-                    this.slamBar.fillStyle(0x00ff00, 1); // Green when ready
-                    this.slamBar.fillRect(90, 570, 100, 16);
-                } else {
-                    let elapsed = time - this.lastSlamTime;
-                    let ratio = Math.max(0, Math.min(elapsed / 2000, 1));
-                    this.slamBar.fillStyle(0xffaa00, 1); // Orange when recharging
-                    this.slamBar.fillRect(90, 570, 100 * ratio, 16);
-                }
-            }
-
-            // Ground pound trigger
-            if (Phaser.Input.Keyboard.JustDown(this.shift) && !this.isGroundPounding && this.slamReady) {
-                this.isGroundPounding = true;
-                this.slamReady = false;
-                this.lastSlamTime = time; // Record the time the slam was used for the cooldown
-                my.sprite.player.setVelocityX(0); // Stop horizontal movement
-                if (this.platformCollider) this.platformCollider.active = false; // Disable platform collision
-                this.sound.play("shiftSmash", { volume: 1 });
-                // Chain the two ground pound animations seamlessly
-                my.sprite.player.play("xeno-grunt-attack-2").chain("xeno-grunt-attack-1");
-            }
-
-            // Ground pound active logic
-            if (this.isGroundPounding) {
-                my.sprite.player.setVelocityY(2000); // Force fast slam
-                this.physics.overlap(my.sprite.player, this.platforms, (player, platform) => {
-                    let explosion = this.add.sprite(platform.x, platform.y, "explosion-1").setScale(2).play("enemyExplosion");
-                    this.removePlatform(platform);
-                    this.sound.play("explosion", { volume: 0.8 });
-                });
-
-                // Kill all zombies beneath and in a small radius
-                for (let enemy of my.sprite.enemies) {
-                    if (enemy.visible) {
-                        let dist = Phaser.Math.Distance.Between(my.sprite.player.x, my.sprite.player.y, enemy.x, enemy.y);
-                        let dx = Math.abs(my.sprite.player.x - enemy.x);
-                        let dy = enemy.y - my.sprite.player.y;
-                        
-                        // Enemy is beneath if lower than player and horizontally close
-                        let isBeneath = dy > 0 && dx < 80;
-                        
-                        if (dist < 150 || isBeneath) {
-                            this.playZombieDeathVisual(enemy);
-                            enemy.visible = false;
-                            enemy.x = -100;
-                            this.myScore += (enemy.scorePoints || 100);
-                            this.updateScore();
-                            let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
-                            this.sound.play(deathSound, { volume: 1 });
-                        }
-                    }
-                }
-            }
-
-            // Calculate platform speed if standing on one
-            let platformSpeed = 0;
-            if (onGround && !onActualGround) {
-                for (let platform of this.platforms.getChildren()) {
-                    if (my.sprite.player.body.bottom >= platform.body.top - 5 &&
-                        my.sprite.player.body.bottom <= platform.body.top + 10 &&
-                        my.sprite.player.body.right >= platform.body.left &&
-                        my.sprite.player.body.left <= platform.body.right) {
-                        platformSpeed = platform.body.velocity.x;
-                        break;
-                    }
-                }
-            }
-
-            let isCrouching = this.down.isDown && !this.isGroundPounding;
-
-            // Move horizontally
-            if (my.sprite.player) {
-                if (this.isGroundPounding) {
-                    my.sprite.player.setVelocityX(0); // Lock movement
-                } else if (this.left.isDown) {
-                    my.sprite.player.setVelocityX(-this.playerSpeed + platformSpeed);
-                    my.sprite.player.setFlipX(false);
-                    my.sprite.player.facingDirection = 1;
-                    isMoving = true;
-                } else if (this.right.isDown) {
-                    my.sprite.player.setVelocityX(this.playerSpeed + platformSpeed);
-                    my.sprite.player.setFlipX(false);
-                    my.sprite.player.facingDirection = 1;
-                    isMoving = true;
-                } else {
-                    my.sprite.player.setVelocityX(platformSpeed);
-                }
-
-                // Jump with SPACE — first jump uses coyote time, second is a mid-air double jump
-                if (Phaser.Input.Keyboard.JustDown(this.space) && this.jumpsRemaining > 0 && !this.isGroundPounding) {
-                    // Allow coyote-time grace for the first jump off a ledge
-                    
-                    if (!onGround && this.jumpsRemaining === this.maxJumps && (time - this.lastGrounded) > this.coyoteTime) {
-                        // Fell off a ledge and coyote time expired — costs the first jump
-                        this.jumpsRemaining--;
-                    }
-
-                    if (this.jumpsRemaining > 0) {
-                        my.sprite.player.setVelocityY(-this.jumpSpeed);
-                        this.jumpsRemaining--;
-                        this.sound.play("playerJumping", { volume: .2});
-                    }
-                }
-            }
-
-            // Check for bullet being fired
-            if (Phaser.Input.Keyboard.JustDown(this.jKey)) {
-                if (my.sprite.player && this.bulletsInChamber > 0 && !this.isReloading && !this.wasCrouching) {
-                    this.bulletsInChamber--;
-                    let dir = my.sprite.player.facingDirection || 1;
-                    
-                    // Adjust these offsets to fine-tune exactly where the bullet leaves the gun barrel!
-                    let offsetX = 0; // Decreased from 72 to pull it left, closer to the player
-                    let offsetY = 50; // Positive Y moves the bullet down from the sprite's origin
-                    
-                    let newBullet = this.add.sprite(
-                        my.sprite.player.x + offsetX, my.sprite.player.y + offsetY, "bullet"
-                    ).setScale(0.75); // You can adjust this number up or down to find the perfect size!
-                    newBullet.setFlipX(dir === -1);
-                    newBullet.fireDirection = dir;
-                    my.sprite.bullet.push(newBullet);
-                    this.sound.play("playerFire", { volume: 0.3 });
-                
-                    my.sprite.player.play("xeno-grunt-range-attack", true);
-
-                    // Auto-reload if empty
-                    if (this.bulletsInChamber <= 0) {
-                        this.reloadGun();
-                    }
-                }
-            }
-
-            // Manual Reload
-            if (Phaser.Input.Keyboard.JustDown(this.rKey) && !this.isReloading && this.bulletsInChamber < 6) {
-                this.reloadGun();
-            }
-
-            // Play or stop animation based on horizontal movement
-            if (my.sprite.player) {
-                if (this.wasCrouching === undefined) this.wasCrouching = false;
-
-                let currentAnim = my.sprite.player.anims.currentAnim?.key;
-                let currentKey = my.sprite.player.texture.key;
-                let isShooting = currentAnim === "xeno-grunt-range-attack" && my.sprite.player.anims.isPlaying;
-                let isPoundingAnim = (currentAnim === "xeno-grunt-attack-2" || currentAnim === "xeno-grunt-attack-1") && my.sprite.player.anims.isPlaying;
-
-                let targetOffsetX = 70;
-                let targetOffsetY = 225; // Default standing offset
-                
-                // Prioritize the shoot animation offset!
-                // If shooting mid-air, we keep the standing offset (225) so the sprite doesn't physically detach from the hitbox
-                if (!onGround && !isCrouching && this.knockbackTimer <= 0 && !this.isGroundPounding && !isPoundingAnim && !isShooting) {
-                    targetOffsetX = 150; // Jumping X offset
-                    targetOffsetY = 100; // Jumping Y offset
-                }
-
-                if (this.knockbackTimer > 0) {
-                    if (currentKey !== "xeno-grunt-knockback") {
-                        my.sprite.player.stop();
-                        my.sprite.player.setTexture("xeno-grunt-knockback", 0); 
-                    }
-                    this.wasCrouching = false;
-                } else if (this.isGroundPounding || isPoundingAnim) {
-                    // Let the attack-2 and attack-1 animations play out seamlessly
-                    this.wasCrouching = false;
-                } else if (isCrouching) {
-                    if (!this.wasCrouching) {
-                        let wasJumping = my.sprite.player.body.offset.y === 100; // Check if we were in the jumping hitbox before crouching
-                        my.sprite.player.stop();
-                        my.sprite.player.setTexture("xeno-grunt-prep-jump", 0);
-                        my.sprite.player.body.setSize(70, 60, false); // Half height for ducking
-                        my.sprite.player.body.setOffset(70, 260); // Push bounding box down to the feet
-                        this.wasCrouching = true;
-                        //this.sound.play("sillyBoing", { volume: 0.5 });
-
-                        // If crouching while in the air (jumping bounding box), adjust the sprite 
-                        // so the physical body doesn't instantly teleport downwards into the floor
-                        if (wasJumping) {
-                            my.sprite.player.x += 36;
-                            my.sprite.player.y -= 56.25;
-                        } 
-                    }
-                } else {
-                    if (this.wasCrouching) {
-                        my.sprite.player.setTexture("xeno-grunt-range-attack", 0);
-                        my.sprite.player.body.setSize(70, 95, false); // Restore full height
-                        my.sprite.player.body.setOffset(70, 225); // Restore offset
-                        this.wasCrouching = false;
-                    }
-
-                    if (!isShooting) {
-                        if (!onGround) {
-                            if (currentKey !== "xeno-grunt-jumping") {
-                                my.sprite.player.stop();
-                                my.sprite.player.setTexture("xeno-grunt-jumping", 0);
-                            }
-                        } else {
-                            if (onActualGround || isMoving) {
-                                my.sprite.player.play("xeno-grunt-run", true);
-                            } else {
-                                my.sprite.player.play("xeno-grunt-idle", true);
-                            }
-                        }
-                    }
-                }
-
-                // Apply jumping offset compensation if not currently crouching
-                // This adjusts the sprite X and Y to perfectly counter the offset shift so the body NEVER moves
-                if (!isCrouching && !this.wasCrouching) {
-                    if (targetOffsetY === 100 && my.sprite.player.body.offset.y !== 100) {
-                        my.sprite.player.body.setSize(70, 95, false);
-                        my.sprite.player.body.setOffset(150, 100);
-                        my.sprite.player.x -= 36; 
-                        my.sprite.player.y += 56.25; 
-                    } else if (targetOffsetY === 225 && my.sprite.player.body.offset.y !== 225) {
-                        my.sprite.player.body.setSize(70, 95, false);
-                        my.sprite.player.body.setOffset(70, 225);
-                        my.sprite.player.x += 36;
-                        my.sprite.player.y -= 56.25;
-                    }
-                }
-            }
-
         }
 
         // Remove all of the bullets which are offscreen
-        // filter() goes through all of the elements of the array, and
-        // only returns those which **pass** the provided test (conditional)
-        // In this case, the condition is, is the y value of the bullet
-        // greater than zero minus half the display height of the bullet? 
-        // (i.e., is the bullet fully offscreen to the top?)
-        // We store the array returned from filter() back into the bullet
-        // array, overwriting it. 
-        // This does have the impact of re-creating the bullet array on every 
-        // update() call. 
         my.sprite.bullet = my.sprite.bullet.filter((bullet) => {
             if (bullet.x < game.config.width + (bullet.displayWidth / 2) && bullet.x > -(bullet.displayWidth / 2)) {
                 return true;
@@ -1031,42 +640,11 @@ class ArcadeShooter extends Phaser.Scene {
         }
 
         // Check for collision with the PLAYER
-        if (this.myHealth > 0) {
-            let isPoundingAnim = false;
-            if (my.sprite.player && my.sprite.player.anims) {
-                let currentAnim = my.sprite.player.anims.currentAnim?.key;
-                isPoundingAnim = (currentAnim === "xeno-grunt-attack-2" || currentAnim === "xeno-grunt-attack-1") && my.sprite.player.anims.isPlaying;
-            }
-
+        if (my.sprite.player && my.sprite.player.health > 0) {
             // 1. Player vs Enemy Body Collision
             for (let enemy of my.sprite.enemies) {
                 if (enemy.visible && this.collides(my.sprite.player, enemy)) {
-                    let playerDied = false;
-
-                    if (!this.invulnerable && !this.isGroundPounding && !isPoundingAnim && this.damageInvulnTimer <= 0) {
-                        this.myHealth -= 1;
-                        this.damageInvulnTimer = 2000; // 2 seconds of invulnerability
-                        this.knockbackTimer = 500;     // 0.5 seconds of knockback visual
-
-                        this.updateHealth();
-                        this.sound.play("playerHit", { volume: 1 });
-
-                        if (this.myHealth <= 0) {
-                            playerDied = true;
-                            my.sprite.player.visible = false;
-                            my.sprite.player.body.setEnable(false); // Stop physics interactions
-
-                            my.sprite.deadPlayer = this.add.sprite(my.sprite.player.x, my.sprite.player.body.bottom, "xeno-grunt-death")
-                                .setScale(my.sprite.player.scaleX)
-                                .setOrigin(0.5, 1); // Anchor to feet
-                                
-                            if (my.sprite.player.facingDirection === -1) my.sprite.deadPlayer.setFlipX(true);
-
-                            this.gameOver = true;
-                            my.text.gameOver.visible = true;
-                            this.sound.play("gameOver", { volume: 3 });
-                        }
-                    }
+                    let playerDied = my.sprite.player.takeDamage();
 
                     // Only destroy the enemy on contact if it didn't kill the player
                     if (!playerDied) {
@@ -1081,37 +659,11 @@ class ArcadeShooter extends Phaser.Scene {
             for (let enemyBullet of my.sprite.enemyBullet) {
                 if (this.collides(my.sprite.player, enemyBullet)) {
                     // Immune to axe projectiles while crouched
-                    if (this.wasCrouching) continue;
+                    if (my.sprite.player.wasCrouching) continue;
 
                     // clear out enemy bullet -- put y offscreen bottom, will get reaped next update
                     enemyBullet.y = game.config.height + 100;
-                    // Update health
-                    if (!this.invulnerable && !this.isGroundPounding && !isPoundingAnim && this.damageInvulnTimer <= 0) {
-                        this.myHealth -= 1;
-                        this.damageInvulnTimer = 2000; // 2 seconds of invulnerability
-                        this.knockbackTimer = 500;     // 0.5 seconds of knockback visual
-
-                        this.updateHealth();
-                        // Play sound
-                        this.sound.play("playerHit", {
-                            volume: 1   // Can adjust volume using this, goes from 0 to 1
-                        });
-
-                        if (this.myHealth <= 0) {
-                            my.sprite.player.visible = false;
-                            my.sprite.player.body.setEnable(false); // Stop physics interactions
-                            
-                            my.sprite.deadPlayer = this.add.sprite(my.sprite.player.x, my.sprite.player.body.bottom, "xeno-grunt-death")
-                                .setScale(my.sprite.player.scaleX)
-                                .setOrigin(0.5, 1); // Anchor to feet
-                                
-                            if (my.sprite.player.facingDirection === -1) my.sprite.deadPlayer.setFlipX(true);
-
-                            this.gameOver = true;
-                            my.text.gameOver.visible = true;
-                            this.sound.play("gameOver", { volume: 1 });
-                        }
-                    }
+                    my.sprite.player.takeDamage();
                 }
             }
         }
@@ -1417,9 +969,11 @@ class ArcadeShooter extends Phaser.Scene {
         }
         my.sprite.healthIcons = [];
 
+        let currentHealth = (my.sprite.player) ? my.sprite.player.health : 3;
+
         // Generate new icons (always draw 3, show empty frame 3 if health is lost)
         for (let i = 0; i < 3; i++) {
-            let frame = (i < this.myHealth) ? 0 : 3;
+            let frame = (i < currentHealth) ? 0 : 3;
             let icon = this.add.sprite(30 + i * 50, 30, "hearts", frame).setScale(3);
             my.sprite.healthIcons.push(icon);
         }
@@ -1442,23 +996,7 @@ class ArcadeShooter extends Phaser.Scene {
         new AxeZombie(this, platform);
     }
 
-    reloadGun() {
-        // Prevent spamming the reload or reloading when already full
-        if (this.isReloading || this.bulletsInChamber === 6) return;
-        
-        this.isReloading = true;
-        this.sound.play("revolverSpin");
-        
-        // Approximate timing: 800ms for spin to finish, then play cock sound, then wait 400ms to allow firing.
-        // You can tweak these timer values to perfectly match the duration of your audio files!
-        this.time.delayedCall(50, () => {
-            this.sound.play("revolverCock");
-            this.time.delayedCall(600, () => {
-                this.bulletsInChamber = 6;
-                this.isReloading = false;
-            });
-        });
-    }
+
 
     playZombieDeathVisual(enemy) {
         let animKey = "smallZombieDeathAnim";
