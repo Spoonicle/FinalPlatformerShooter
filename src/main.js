@@ -25,8 +25,8 @@ let config = {
     physics: {
         default: 'arcade',
         arcade: {
-            gravity: { y: 3500 },
-            debug: true
+            gravity: { y: 5500 },
+            debug: false
         }
     },
     scene: [ArcadeShooter]

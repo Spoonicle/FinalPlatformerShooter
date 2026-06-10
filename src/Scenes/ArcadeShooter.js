@@ -21,14 +21,14 @@ class ArcadeShooter extends Phaser.Scene {
         this.my.sprite.bullet = [];
         this.my.sprite.enemyBullet = [];
         this.my.sprite.enemies = [];
-        this.maxBullets = 1;           // Don't create more than this many bullets
+        this.my.sprite.deadEnemies = [];
+        this.bulletsInChamber = 6;     // Track revolver ammo
+        this.isReloading = false;      // Track if currently reloading
 
         this.myScore = 0;       // record a score as a class variable
         this.myHealth = 3;      // Start with 3 health
-        this.currentRound = 1;  // Start at round 1 (disabled while no enemies)
         this.gameOver = false;  // Track if the game is over
         this.highScore = 0;     // Track the high score across restarts
-        this.highScoreColor = "Beige"; // Track the color of the alien with the high score
         this.gameState = "TITLE"; // Track if we are on the title screen
         // More typically want to use a global variable for score, since
         // it will be used across multiple scenes
@@ -36,18 +36,38 @@ class ArcadeShooter extends Phaser.Scene {
 
     preload() {
         this.load.setPath("./assets/");
-        for (let color of ["Beige", "Blue", "Green", "Pink", "Yellow"]) {
-            for (let i = 1; i <= 5; i++) {
-                this.load.image(`alien${color}_newWalk${i}`, `alien${color}_newWalk${i}.png`);
-            }
-            // Load the badge corresponding to this color
-            this.load.image(`alien${color}_badge2`, `alien${color}_badge2.png`);
-            this.load.image(`alien${color}_badge1`, `alien${color}_badge1.png`);
-        }
-        this.load.image("bullet", "ghost_hit.png");
+        this.load.spritesheet("xeno-grunt-range-attack", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-range-attack.png", {
+            frameWidth: 320,
+            frameHeight: 320
+        });
+        this.load.spritesheet("xeno-grunt-prep-jump", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-prep-jump.png", {
+            frameWidth: 320,
+            frameHeight: 320
+        });
+        this.load.spritesheet("xeno-grunt-run", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-run.png", {
+            frameWidth: 320, frameHeight: 320
+        });
+        this.load.spritesheet("xeno-grunt-idle", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-idle.png", {
+            frameWidth: 320, frameHeight: 320
+        });
+        this.load.spritesheet("xeno-grunt-attack-2", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-attack-2.png", {
+            frameWidth: 320, frameHeight: 320
+        });
+        this.load.spritesheet("xeno-grunt-attack-1", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-attack-1.png", {
+            frameWidth: 320, frameHeight: 320
+        });
+        this.load.image("xeno-grunt-knockback", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-knockback.png");
+        this.load.image("xeno-grunt-jumping", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-jumping.png");
+        this.load.image("xeno-grunt-death", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-death-grounded.png");
+        this.load.image("bullet", "player/xeno-grunt/xeno-grunt/spritesheets/5x/xeno-grunt-range-projectile.png");
         for (let i = 0; i <= 5; i++) {
             this.load.image(`bg${i}`, `${i}.png`);
         }
+
+        this.load.spritesheet("hearts", "player/hearts.png", {
+            frameWidth: 16,
+            frameHeight: 16
+        });
 
         // For animation
         this.load.image("explosion-1", "explosion-1.png");
@@ -75,8 +95,26 @@ class ArcadeShooter extends Phaser.Scene {
         this.load.image("platform12", "Container_8_Red_Horizontal_Overgrown_Green.png");
         this.load.setPath("./assets/");
 
+        // Load Zombie Images (frames will be dynamically sliced in create() based on filenames)
+        this.load.setPath("./assets/big_Zombie/");
+        this.load.image("bigZombieAttack1", "Zombie_Big_Side-left_First-Attack-Sheet8.png");
+        this.load.image("bigZombieAttack2", "Zombie_Big_Side-left_Second-Attack-Sheet15.png");
+        this.load.image("bigZombieDeath", "Zombie_Big_Side-left_Second-Death-Sheet8.png");
+        this.load.image("bigZombieWalk", "Zombie_Big_Side-left_Walk-Sheet8.png");
 
+        this.load.setPath("./assets/axe_Zombie/");
+        this.load.image("axeZombieAttack", "Zombie_Axe_Side-left_Second-Attack-Sheet9.png");
+        this.load.image("axeZombieDeath", "Zombie_Axe_Side-left_Second-Death-Sheet7.png");
+        this.load.image("axeZombieIdle", "Zombie_Axe_Side-left_Idle-Sheet6.png");
 
+        this.load.setPath("./assets/small_Zombie/");
+        this.load.image("smallZombieAttack1", "Zombie_Small_Side-left_First-Attack-Sheet4.png");
+        this.load.image("smallZombieAttack2", "Zombie_Small_Side-left_Second-Attack-Sheet11.png");
+        this.load.image("smallZombieDeath", "Zombie_Small_Side-left_Second-Death-Sheet7.png");
+        this.load.image("smallZombieWalk", "Zombie_Small_Side-left_Walk-Sheet6.png");
+        this.load.image("axeThrown", "Axe_Side-left_Thrown-Sheet9.png"); // Load thrown axe projectile
+        
+        this.load.setPath("./assets/");
 
         // Load the Kenny Rocket Square bitmap font
         // This was converted from TrueType format into Phaser bitmap
@@ -92,15 +130,43 @@ class ArcadeShooter extends Phaser.Scene {
         this.load.audio("playerFire", "laserRetro_001.ogg");
         this.load.audio("enemyFire", "laserRetro_004.ogg");
         this.load.audio("space_audio", "space_audio.mp3");
+        
+        // Load Reload Sound Effects
+        // Note: Change '.wav' to '.ogg' or '.mp3' if your files use a different extension!
+        this.load.audio("revolverSpin", "RevolverSpin.mp3");
+        this.load.audio("revolverCock", "revolverCock.mp3");
+        
+        this.load.audio("axeHitAudio", "axeHitAudio.mp3");
+        this.load.audio("axeThrowAudio", "axeThrowAudio.mp3");
+
+        this.load.audio("giantWalk", "giantWalk.mp3");
+        this.load.audio("playerHit", "playerHitSound.mp3");
+        this.load.audio("shiftSmash", "ShiftSmash.mp3");
+        this.load.audio("playerJumping", "playerJumping.mp3");
+        this.load.audio("gameOver", "gameOver.mp3");
+        this.load.audio("sillyBoing", "sillyBoing.mp3");
+
+        this.load.setPath("./assets/zombieSounds/");
+
+        this.load.audio("zombie1", "zombie1.mp3");
+        this.load.audio("zombie2", "zombie2.mp3");
+        this.load.audio("zombie3", "zombie3.mp3");
+        this.load.audio("zombie4", "zombie4.mp3");
+        this.load.audio("zombie5", "zombie5.mp3");
+        this.load.audio("zombie6", "zombie6.mp3");
+        this.load.audio("zombie7", "zombie7.mp3");
     }
 
     create() {
         let my = this.my;
 
+        // Array of sound keys loaded in preload to use for ambient horde noises
+        this.zombieSoundKeys = ["zombie1", "zombie2", "zombie3", "zombie4", "zombie5", "zombie6", "zombie7"];
+
         // Safely check if the audio exists before adding and playing it to avoid crashes
         if (this.cache.audio.exists("space_audio")) {
             this.backgroundAudio = this.sound.add("space_audio");
-            this.backgroundAudio.play({ loop: true });
+            this.backgroundAudio.play({ loop: true, volume: 0.3 }); // Adjust volume as needed
         } else {
             console.warn("Audio key 'space_audio' missing. Check if the file is in the assets folder.");
         }
@@ -145,20 +211,91 @@ class ArcadeShooter extends Phaser.Scene {
             hideOnComplete: true
         });
 
-        for (let color of ["Beige", "Blue", "Green", "Pink", "Yellow"]) {
-            this.anims.create({
-                key: `walk_${color}`,
-                frames: [
-                    { key: `alien${color}_newWalk1` },
-                    { key: `alien${color}_newWalk2` },
-                    { key: `alien${color}_newWalk3` },
-                    { key: `alien${color}_newWalk4` },
-                    { key: `alien${color}_newWalk5` }
-                ],
-                frameRate: 15, // Increased from 8 to 15 so the 5 frames play smoothly
-                repeat: -1
-            });
+        this.anims.create({
+            key: "xeno-grunt-range-attack",
+            frames: this.anims.generateFrameNumbers("xeno-grunt-range-attack", { start: 0, end: 6 }),
+            frameRate: 15,
+            repeat: 0
+        });
+
+        this.anims.create({
+            key: "xeno-grunt-run",
+            frames: this.anims.generateFrameNumbers("xeno-grunt-run", { start: 0, end: 7 }),
+            frameRate: 15,
+            repeat: -1
+        });
+        this.anims.create({
+            key: "xeno-grunt-idle",
+            frames: this.anims.generateFrameNumbers("xeno-grunt-idle", { start: 0, end: 1 }),
+            frameRate: 4,
+            repeat: -1
+        });
+        this.anims.create({
+            key: "xeno-grunt-attack-2",
+            frames: this.anims.generateFrameNumbers("xeno-grunt-attack-2", { start: 0, end: 6 }),
+            frameRate: 15,
+            repeat: 0
+        });
+        this.anims.create({
+            key: "xeno-grunt-attack-1",
+            frames: this.anims.generateFrameNumbers("xeno-grunt-attack-1", { start: 0, end: 8 }),
+            frameRate: 15,
+            repeat: 0
+        });
+
+        // Dynamically slice the loaded zombie images into frames based on the file names
+        const zombieConfigs = [
+            { key: "bigZombieAttack1", frames: 8 },
+            { key: "bigZombieAttack2", frames: 15 },
+            { key: "bigZombieDeath", frames: 8 },
+            { key: "bigZombieWalk", frames: 8 },
+            { key: "axeZombieAttack", frames: 9 },
+            { key: "axeZombieDeath", frames: 7 },
+            { key: "axeZombieIdle", frames: 6 },
+            { key: "smallZombieAttack1", frames: 4 },
+            { key: "smallZombieAttack2", frames: 11 },
+            { key: "smallZombieDeath", frames: 7 },
+            { key: "smallZombieWalk", frames: 6 },
+            { key: "axeThrown", frames: 9 }
+        ];
+
+        for (let zc of zombieConfigs) {
+            let tex = this.textures.get(zc.key);
+            if (tex && tex.key !== '__MISSING') {
+                let w = tex.source[0].width;
+                let h = tex.source[0].height;
+                let fw = Math.floor(w / zc.frames);
+                // Create each frame dynamically on the texture
+                for (let i = 0; i < zc.frames; i++) {
+                    tex.add(i, 0, i * fw, 0, fw, h);
+                }
+            }
         }
+
+        // Helper function to safely fetch generated frames
+        const getZombieFrames = (key, count) => {
+            let frames = [];
+            for (let i = 0; i < count; i++) frames.push({ key: key, frame: i });
+            return frames;
+        };
+
+        // Big Zombie Animations
+        this.anims.create({ key: 'bigZombieWalkAnim', frames: getZombieFrames('bigZombieWalk', 8), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'bigZombieAttack1Anim', frames: getZombieFrames('bigZombieAttack1', 8), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'bigZombieAttack2Anim', frames: getZombieFrames('bigZombieAttack2', 15), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'bigZombieDeathAnim', frames: getZombieFrames('bigZombieDeath', 8), frameRate: 8, repeat: 0 });
+
+        // Axe Zombie Animations
+        this.anims.create({ key: 'axeZombieIdleAnim', frames: getZombieFrames('axeZombieIdle', 6), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'axeZombieAttackAnim', frames: getZombieFrames('axeZombieAttack', 9), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'axeZombieDeathAnim', frames: getZombieFrames('axeZombieDeath', 7), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'axeThrownAnim', frames: getZombieFrames('axeThrown', 9), frameRate: 15, repeat: -1 });
+
+        // Small Zombie Animations
+        this.anims.create({ key: 'smallZombieWalkAnim', frames: getZombieFrames('smallZombieWalk', 6), frameRate: 8, repeat: -1 });
+        this.anims.create({ key: 'smallZombieAttack1Anim', frames: getZombieFrames('smallZombieAttack1', 4), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'smallZombieAttack2Anim', frames: getZombieFrames('smallZombieAttack2', 11), frameRate: 8, repeat: 0 });
+        this.anims.create({ key: 'smallZombieDeathAnim', frames: getZombieFrames('smallZombieDeath', 7), frameRate: 8, repeat: 0 });
 
         // Create key objects
         this.up = this.input.keyboard.addKey("W");
@@ -166,13 +303,14 @@ class ArcadeShooter extends Phaser.Scene {
         this.left = this.input.keyboard.addKey("A");
         this.right = this.input.keyboard.addKey("D");
         this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+        this.jKey = this.input.keyboard.addKey("J");
         this.rKey = this.input.keyboard.addKey("R");
         this.iKey = this.input.keyboard.addKey("I"); // Toggle invulnerability during tests
         this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
         // Set movement speeds (in pixels/sec)
-        this.playerSpeed = 250;
-        this.jumpSpeed = 1200;
+        this.playerSpeed = 300;
+        this.jumpSpeed = 1500;
         this.bulletSpeed = 500;
         this.enemyBulletSpeed = 300;
         this.enemySpeed = 100;
@@ -205,15 +343,14 @@ class ArcadeShooter extends Phaser.Scene {
             spawnBufferX: 100,
             despawnBufferX: 60,
             numZones: null, // dynamic
-            zoneTopMargin: 120,
+            zoneTopMargin: 160,
             zoneBottomMargin: 220,
-            platformSpeed: 150,
-            speedJitter: 0,
-            spawnIntervalRange: [1200, 2200],
-            initialLowCount: 3,
+            platformSpeed: 200,
+            spawnIntervalRange: [1000, 1500],
+            initialLowCount: 2,
             platformMaxRiseRatio: 0.75,
             platformScale: 2,
-            oneWay: false
+            oneWay: true
         };
 
         // Determine zones (equal-height vertical bands)
@@ -235,14 +372,23 @@ class ArcadeShooter extends Phaser.Scene {
         // High Score UI
         my.text.highScore = this.add.bitmapText(580, 30, "rocketSquare", "High 0", 20);
         my.text.highScore.visible = false;
-        my.sprite.highScoreBadge = this.add.sprite(760, 27, `alien${this.highScoreColor}_badge2`).setScale(0.8);
+        my.sprite.highScoreBadge = this.add.sprite(760, 27, "xeno-grunt-range-attack", 0).setScale(0.09);
         my.sprite.highScoreBadge.visible = false; // Hide until a score is actually achieved
         // Small on-screen indicator for invulnerability (hidden by default)
         my.text.invul = this.add.text(580, 55, "INVUL", { fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#FF4444' }).setOrigin(0, 0);
         my.text.invul.visible = false;
-
-        my.text.round = this.add.bitmapText(350, 5, "rocketSquare", "Round 1", 20);
-        my.text.round.visible = false;
+        
+        // Shift Cooldown UI
+        my.text.slamLabel = this.add.bitmapText(20, 570, "rocketSquare", "SLAM", 16);
+        my.text.slamLabel.visible = false;
+        this.slamBarBg = this.add.graphics();
+        this.slamBarBg.fillStyle(0x000000, 0.5);
+        this.slamBarBg.fillRect(90, 570, 100, 16);
+        this.slamBarBg.lineStyle(2, 0xffffff, 1);
+        this.slamBarBg.strokeRect(90, 570, 100, 16);
+        this.slamBarBg.visible = false;
+        this.slamBar = this.add.graphics();
+        this.slamBar.visible = false;
 
         // Title Screen Text
         my.text.titleTextShadow1 = this.add.text(game.config.width / 2 + 3, game.config.height / 2 - 63, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
@@ -254,10 +400,6 @@ class ArcadeShooter extends Phaser.Scene {
         // Game Over text
         my.text.gameOver = this.add.bitmapText(game.config.width / 2, game.config.height / 2, "rocketSquare", "GAME OVER\nPress R to Restart").setOrigin(0.5).setCenterAlign();
         my.text.gameOver.visible = false;
-
-        // Round announcement — shown briefly at the start of each round
-        my.text.roundAnnounce = this.add.bitmapText(game.config.width / 2, game.config.height / 2 - 60, "rocketSquare", "", 64).setOrigin(0.5).setCenterAlign().setDepth(10);
-        my.text.roundAnnounce.visible = false;
 
         // Health/logo indicators (can be used for display during gameplay)
         my.text.logo1 = this.add.text(0, 0, "").setVisible(false);
@@ -272,26 +414,40 @@ class ArcadeShooter extends Phaser.Scene {
         this.gameOver = false;
         this.myHealth = 3;
         this.myScore = 0;
-        this.currentRound = 1;
+        this.zombieGroupTimer = 4000;    // Time until next group of small zombies
+        this.zombiesToSpawn = 0;         // Number of zombies to spawn in the current cluster
+        this.zombieSpawnTimer = 0;       // Fast timer between individual spawns in a cluster
+        this.bigZombieSpawnTimer = 12000; // Start spawning big zombies after 15 seconds
+        this.zombieAmbientTimer = 4000;  // Start playing horde sounds when zombies arrive
+        this.jumperZombieSpawnTimer = 3000; // Initial timer for jumping zombies once score hits 500
+        this.bgScrollSpeed = 100;        // Reset parallax speed
+        this.currentPlatformSpeed = this.platformConfig.platformSpeed;
+        this.bulletsInChamber = 6;       // Reset ammo on restart
+        this.isReloading = false;        // Reset reloading state
+        this.lastSlamTime = 0;           // Reset slam cooldown timer
+        this.slamReady = true;           // Reset slam readiness flag
+        this.damageInvulnTimer = 0;      // Reset damage i-frames timer
+        this.knockbackTimer = 0;         // Reset knockback visual timer
         // Testing: make player invulnerable to damage while we test
-        this.invulnerable = true;
+        this.invulnerable = false;
         if (my.text && my.text.invul) my.text.invul.visible = this.invulnerable;
-
-        // Determine player color first so HUD can use it to draw the correct health icons
-        const colors = ["Beige", "Blue", "Green", "Pink", "Yellow"];
-        this.playerColor = colors[Math.floor(Math.random() * colors.length)];
 
         // Update HUD text (safe to call because text objects exist before initGame() is ever called)
         if (my.text.gameOver) my.text.gameOver.visible = false;
         this.updateHealth();
         this.updateScore();
-        // Round counter disabled while no enemies are implemented
-        // this.updateRound();
         this.updateHighScoreUI();
 
         // Destroy any leftover sprites from a previous game
-        for (let enemy of my.sprite.enemies) enemy.destroy();
+        for (let enemy of my.sprite.enemies) {
+            if (enemy.walkSound) enemy.walkSound.stop();
+            enemy.destroy();
+        }
         my.sprite.enemies = [];
+        if (my.sprite.deadEnemies) {
+            for (let dead of my.sprite.deadEnemies) dead.destroy();
+        }
+        my.sprite.deadEnemies = [];
         for (let b of my.sprite.bullet) b.destroy();
         my.sprite.bullet = [];
         for (let eb of my.sprite.enemyBullet) eb.destroy();
@@ -303,28 +459,47 @@ class ArcadeShooter extends Phaser.Scene {
 
         // Destroy old player if one exists (e.g. on restart)
         if (my.sprite.player) my.sprite.player.destroy();
+        if (my.sprite.deadPlayer) my.sprite.deadPlayer.destroy();
 
-        my.sprite.player = this.physics.add.sprite(40, game.config.height - 120, `alien${this.playerColor}_newWalk1`).setScale(0.5).setCollideWorldBounds(true);
+        my.sprite.player = this.physics.add.sprite(40, game.config.height - 400, "xeno-grunt-range-attack", 0).setScale(0.45).setCollideWorldBounds(true);
+        my.sprite.player.body.setSize(70, 95, false); // Adjusted height to be 5 pixels taller
+        my.sprite.player.body.setOffset(70, 225); // Push Y offset down to keep feet on the ground
         my.sprite.player.facingDirection = 1;
         this.physics.add.collider(my.sprite.player, this.ground);
         // Standard collider; one-way behavior is handled via checkCollision flags on each platform
         this.platformCollider = this.physics.add.collider(my.sprite.player, this.platforms);
         this.isGroundPounding = false;
-
-        // Round system disabled while no enemies are implemented
-        // this.spawnRound(this.currentRound);
-        // this.showRoundAnnouncement(this.currentRound);
+        this.wasOnActualGround = false;
     }
 
     update(time, delta) {
         let my = this.my;
         let dt = delta / 1000;
 
+        // Handle damage invulnerability timer and flashing effect
+        if (this.damageInvulnTimer > 0) {
+            this.damageInvulnTimer -= delta;
+            if (my.sprite.player) {
+                my.sprite.player.setAlpha(Math.floor(time / 100) % 2 === 0 ? 0.3 : 1);
+            }
+            if (this.damageInvulnTimer <= 0 && my.sprite.player) {
+                my.sprite.player.setAlpha(1); // Ensure alpha resets cleanly when done
+            }
+        }
+        if (this.knockbackTimer > 0) {
+            this.knockbackTimer -= delta;
+        }
+
         // Debug: toggle invulnerability at runtime with I
         if (Phaser.Input.Keyboard.JustDown(this.iKey)) {
             this.invulnerable = !this.invulnerable;
             if (my.text && my.text.invul) my.text.invul.visible = this.invulnerable;
             console.log("Invulnerable:", this.invulnerable);
+        }
+
+        // Slow the parallax background down if the game is over
+        if (this.gameOver) {
+            this.bgScrollSpeed = Math.max(0, this.bgScrollSpeed - 100 * dt);
         }
 
         // Scroll the parallax background (increases tilePositionX so texture moves up, simulating player moving down)
@@ -347,8 +522,9 @@ class ArcadeShooter extends Phaser.Scene {
                 if (my.text.logo3) my.text.logo3.visible = true;
                 if (my.text.score) my.text.score.visible = true;
                 if (my.text.highScore) my.text.highScore.visible = true;
-                // Round counter hidden while no enemies
-                // if (my.text.round) my.text.round.visible = true;
+                if (my.text.slamLabel) my.text.slamLabel.visible = true;
+                if (this.slamBarBg) this.slamBarBg.visible = true;
+                if (this.slamBar) this.slamBar.visible = true;
 
                 this.initGame();
             }
@@ -361,20 +537,76 @@ class ArcadeShooter extends Phaser.Scene {
         }
 
         if (this.gameState === "PLAYING" && !this.gameOver) {
+            // Increase platform speed over time (e.g., 1 pixel per second)
+            this.currentPlatformSpeed += 1 * dt;
+
             this.platformSpawnTimer -= delta;
             if (this.platformSpawnTimer <= 0) {
                 this.spawnPlatform();
-                this.platformSpawnTimer = Phaser.Math.Between(this.platformConfig.spawnIntervalRange[0], this.platformConfig.spawnIntervalRange[1]);
+                // Decrease spawn interval as speed increases to keep platforms from getting too far apart
+                let speedRatio = this.platformConfig.platformSpeed / this.currentPlatformSpeed;
+                this.platformSpawnTimer = Phaser.Math.Between(
+                    this.platformConfig.spawnIntervalRange[0] * speedRatio,
+                    this.platformConfig.spawnIntervalRange[1] * speedRatio
+                );
+            }
+            
+            // Zombie Group Spawn Logic
+            if (this.zombiesToSpawn > 0) {
+                this.zombieSpawnTimer -= delta;
+                if (this.zombieSpawnTimer <= 0) {
+                    this.spawnSmallZombie();
+                    this.zombiesToSpawn--;
+                    this.zombieSpawnTimer = Phaser.Math.Between(50, 150); 
+                }
+            } else {
+                this.zombieGroupTimer -= delta;
+                if (this.zombieGroupTimer <= 0) {
+                    this.zombiesToSpawn = Phaser.Math.Between(8, 18); // Spawn a cluster of 4 to 10 zombies
+                    this.zombieGroupTimer = Phaser.Math.Between(750, 1250); // Leave a .75 to 1.25 second gap between clusters
+                }
+            }
+
+            if (this.myScore >= 500) {
+                this.bigZombieSpawnTimer -= delta;
+                if (this.bigZombieSpawnTimer <= 0) {
+                    this.spawnBigZombie();
+                    // Spawn big zombies much less often (every 3 to 8 seconds)
+                    this.bigZombieSpawnTimer = Phaser.Math.Between(3000, 8000); 
+                }
+            }
+
+            // Jumper Zombie Spawn Logic (Starts at 1000 score)
+            if (this.myScore >= 1000) {
+                this.jumperZombieSpawnTimer -= delta;
+                if (this.jumperZombieSpawnTimer <= 0) {
+                    this.spawnJumperZombie();
+                    this.jumperZombieSpawnTimer = Phaser.Math.Between(1500, 4000); 
+                }
+            }
+
+            // Zombie Ambient Sound Logic
+            this.zombieAmbientTimer -= delta;
+            if (this.zombieAmbientTimer <= 0) {
+                let randomSound = Phaser.Utils.Array.GetRandom(this.zombieSoundKeys);
+                this.sound.play(randomSound, { volume: 0.2 }); // Kept slightly quieter so it doesn't drown out gunfire
+                // Play the next ambient sound randomly between 400ms and 1500ms from now
+                this.zombieAmbientTimer = Phaser.Math.Between(400, 1500); 
+            }
+
+
+            // Update dead zombie velocities to match the world speed and their momentum
+            for (let dead of my.sprite.deadEnemies) {
+                if (dead.body && dead.baseSpeed !== undefined) {
+                    dead.body.setVelocityX(-(this.currentPlatformSpeed + dead.baseSpeed));
+                }
             }
 
             this.platforms.getChildren().forEach((platform) => {
-                // Safety check: if platform has lost its velocity (stuck), restore it
-                if (platform.body && platform.x > -500 && platform.x < game.config.width + 200) {
-                    if (Math.abs(platform.body.velocity.x) < 1) {
-                        // Platform is moving too slowly or not at all - restore velocity
-                        let speed = platform._spawnMeta?.speed || 120;
-                        platform.body.setVelocityX(-Math.abs(speed));
-                        console.warn("Platform velocity reset to", -Math.abs(speed));
+                if (platform.body) {
+                    platform.body.setVelocityX(-Math.abs(this.currentPlatformSpeed));
+                    if (platform._spawnMeta) {
+                        platform._spawnMeta.speed = this.currentPlatformSpeed;
                     }
                 }
 
@@ -392,13 +624,13 @@ class ArcadeShooter extends Phaser.Scene {
             let onActualGround = false;
             if (my.sprite.player && my.sprite.player.body) {
                 onGround = my.sprite.player.body.blocked.down || my.sprite.player.body.touching.down || my.sprite.player.body.onFloor();
-                
+
                 // Check if the player is specifically touching the ground object at the bottom of the screen
                 if (onGround && my.sprite.player.body.bottom >= this.ground.y - (this.ground.height / 2) - 1) {
                     onActualGround = true;
                 }
             }
-            
+
             if (onActualGround && !this.wasOnActualGround) {
                 // Check if a ground-spawned platform already exists on screen
                 let groundPlatformExists = this.platforms.getChildren().some(p => p.isGroundSpawn);
@@ -411,19 +643,80 @@ class ArcadeShooter extends Phaser.Scene {
             if (onGround) {
                 this.lastGrounded = time;
                 this.jumpsRemaining = this.maxJumps; // reset jumps when grounded
-                
+
                 // Reset ground pound state upon landing
                 if (this.isGroundPounding) {
                     this.isGroundPounding = false;
                     if (this.platformCollider) this.platformCollider.active = true;
+                    
+                    // Trigger outward shockwave explosions
+                    let px = my.sprite.player.x;
+                    let py = my.sprite.player.y + 40; // Ground level
+                    
+                    for (let i = 0; i < 3; i++) {
+                        this.time.delayedCall(i * 60, () => {
+                            if (!my.sprite.player || !my.sprite.player.active) return;
+                            
+                            let spawnExplosionAndKill = (exX) => {
+                                this.add.sprite(exX, py, "explosion-1").setScale(2).play("enemyExplosion");
+                                for (let enemy of my.sprite.enemies) {
+                                    if (enemy.visible) {
+                                        let dist = Math.abs(exX - enemy.x);
+                                        let yDist = Math.abs(py - enemy.y);
+                                        if (dist < 80 && yDist < 150) { // Check rectangular bounds
+                                            this.playZombieDeathVisual(enemy);
+                                            enemy.visible = false;
+                                            enemy.x = -100;
+                                            this.myScore += (enemy.scorePoints || 100);
+                                            this.updateScore();
+                                            let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
+                                            this.sound.play(deathSound, { volume: 1 });
+                                        }
+                                    }
+                                }
+                            };
+
+                            if (i === 0) {
+                                spawnExplosionAndKill(px);
+                            } else {
+                                spawnExplosionAndKill(px - (i * 90));
+                                spawnExplosionAndKill(px + (i * 90));
+                            }
+                            this.sound.play("explosion", { volume: 0.4 });
+                        });
+                    }
+                }
+            }
+
+            // Check if slam cooldown just finished
+            if (this.myHealth > 0 && !this.slamReady && (time - this.lastSlamTime > 2000)) {
+                this.slamReady = true;
+            }
+            
+            // Update Slam Cooldown UI
+            if (this.slamBar) {
+                this.slamBar.clear();
+                if (this.slamReady) {
+                    this.slamBar.fillStyle(0x00ff00, 1); // Green when ready
+                    this.slamBar.fillRect(90, 570, 100, 16);
+                } else {
+                    let elapsed = time - this.lastSlamTime;
+                    let ratio = Math.max(0, Math.min(elapsed / 2000, 1));
+                    this.slamBar.fillStyle(0xffaa00, 1); // Orange when recharging
+                    this.slamBar.fillRect(90, 570, 100 * ratio, 16);
                 }
             }
 
             // Ground pound trigger
-            if (!onGround && Phaser.Input.Keyboard.JustDown(this.shift) && !this.isGroundPounding) {
+            if (Phaser.Input.Keyboard.JustDown(this.shift) && !this.isGroundPounding && this.slamReady) {
                 this.isGroundPounding = true;
+                this.slamReady = false;
+                this.lastSlamTime = time; // Record the time the slam was used for the cooldown
                 my.sprite.player.setVelocityX(0); // Stop horizontal movement
                 if (this.platformCollider) this.platformCollider.active = false; // Disable platform collision
+                this.sound.play("shiftSmash", { volume: 1 });
+                // Chain the two ground pound animations seamlessly
+                my.sprite.player.play("xeno-grunt-attack-2").chain("xeno-grunt-attack-1");
             }
 
             // Ground pound active logic
@@ -434,63 +727,199 @@ class ArcadeShooter extends Phaser.Scene {
                     this.removePlatform(platform);
                     this.sound.play("explosion", { volume: 0.8 });
                 });
+
+                // Kill all zombies beneath and in a small radius
+                for (let enemy of my.sprite.enemies) {
+                    if (enemy.visible) {
+                        let dist = Phaser.Math.Distance.Between(my.sprite.player.x, my.sprite.player.y, enemy.x, enemy.y);
+                        let dx = Math.abs(my.sprite.player.x - enemy.x);
+                        let dy = enemy.y - my.sprite.player.y;
+                        
+                        // Enemy is beneath if lower than player and horizontally close
+                        let isBeneath = dy > 0 && dx < 80;
+                        
+                        if (dist < 150 || isBeneath) {
+                            this.playZombieDeathVisual(enemy);
+                            enemy.visible = false;
+                            enemy.x = -100;
+                            this.myScore += (enemy.scorePoints || 100);
+                            this.updateScore();
+                            let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
+                            this.sound.play(deathSound, { volume: 1 });
+                        }
+                    }
+                }
             }
+
+            // Calculate platform speed if standing on one
+            let platformSpeed = 0;
+            if (onGround && !onActualGround) {
+                for (let platform of this.platforms.getChildren()) {
+                    if (my.sprite.player.body.bottom >= platform.body.top - 5 &&
+                        my.sprite.player.body.bottom <= platform.body.top + 10 &&
+                        my.sprite.player.body.right >= platform.body.left &&
+                        my.sprite.player.body.left <= platform.body.right) {
+                        platformSpeed = platform.body.velocity.x;
+                        break;
+                    }
+                }
+            }
+
+            let isCrouching = this.down.isDown && !this.isGroundPounding;
 
             // Move horizontally
             if (my.sprite.player) {
                 if (this.isGroundPounding) {
                     my.sprite.player.setVelocityX(0); // Lock movement
                 } else if (this.left.isDown) {
-                    my.sprite.player.setVelocityX(-this.playerSpeed);
-                    my.sprite.player.setFlipX(true);
-                    my.sprite.player.facingDirection = -1;
+                    my.sprite.player.setVelocityX(-this.playerSpeed + platformSpeed);
+                    my.sprite.player.setFlipX(false);
+                    my.sprite.player.facingDirection = 1;
                     isMoving = true;
                 } else if (this.right.isDown) {
-                    my.sprite.player.setVelocityX(this.playerSpeed);
+                    my.sprite.player.setVelocityX(this.playerSpeed + platformSpeed);
                     my.sprite.player.setFlipX(false);
                     my.sprite.player.facingDirection = 1;
                     isMoving = true;
                 } else {
-                    my.sprite.player.setVelocityX(0);
+                    my.sprite.player.setVelocityX(platformSpeed);
                 }
 
-                // Jump with W — first jump uses coyote time, second is a mid-air double jump
-                if (Phaser.Input.Keyboard.JustDown(this.up) && this.jumpsRemaining > 0 && !this.isGroundPounding) {
+                // Jump with SPACE — first jump uses coyote time, second is a mid-air double jump
+                if (Phaser.Input.Keyboard.JustDown(this.space) && this.jumpsRemaining > 0 && !this.isGroundPounding) {
                     // Allow coyote-time grace for the first jump off a ledge
+                    
                     if (!onGround && this.jumpsRemaining === this.maxJumps && (time - this.lastGrounded) > this.coyoteTime) {
                         // Fell off a ledge and coyote time expired — costs the first jump
                         this.jumpsRemaining--;
                     }
+
                     if (this.jumpsRemaining > 0) {
                         my.sprite.player.setVelocityY(-this.jumpSpeed);
                         this.jumpsRemaining--;
+                        this.sound.play("playerJumping", { volume: .2});
                     }
                 }
             }
 
-            // Play or stop animation based on horizontal movement
-            if (my.sprite.player) {
-                if (isMoving) {
-                    my.sprite.player.play(`walk_${this.playerColor}`, true);
-                } else {
-                    my.sprite.player.stop();
+            // Check for bullet being fired
+            if (Phaser.Input.Keyboard.JustDown(this.jKey)) {
+                if (my.sprite.player && this.bulletsInChamber > 0 && !this.isReloading && !this.wasCrouching) {
+                    this.bulletsInChamber--;
+                    let dir = my.sprite.player.facingDirection || 1;
+                    
+                    // Adjust these offsets to fine-tune exactly where the bullet leaves the gun barrel!
+                    let offsetX = 0; // Decreased from 72 to pull it left, closer to the player
+                    let offsetY = 50; // Positive Y moves the bullet down from the sprite's origin
+                    
+                    let newBullet = this.add.sprite(
+                        my.sprite.player.x + offsetX, my.sprite.player.y + offsetY, "bullet"
+                    ).setScale(0.75); // You can adjust this number up or down to find the perfect size!
+                    newBullet.setFlipX(dir === -1);
+                    newBullet.fireDirection = dir;
+                    my.sprite.bullet.push(newBullet);
+                    this.sound.play("playerFire", { volume: 0.3 });
+                
+                    my.sprite.player.play("xeno-grunt-range-attack", true);
+
+                    // Auto-reload if empty
+                    if (this.bulletsInChamber <= 0) {
+                        this.reloadGun();
+                    }
                 }
             }
 
-            // Check for bullet being fired
-            if (Phaser.Input.Keyboard.JustDown(this.space)) {
-                if (my.sprite.player && my.sprite.bullet.length < this.maxBullets) {
-                    let dir = my.sprite.player.facingDirection || 1;
-                    let offsetX = dir === -1 ? -(my.sprite.player.displayWidth / 2) : (my.sprite.player.displayWidth / 2);
-                    let newBullet = this.add.sprite(
-                        my.sprite.player.x + offsetX, my.sprite.player.y, "bullet"
-                    );
-                    newBullet.setAngle(dir === -1 ? -90 : 90);
-                    newBullet.fireDirection = dir;
-                    my.sprite.bullet.push(newBullet);
-                    this.sound.play("playerFire");
+            // Manual Reload
+            if (Phaser.Input.Keyboard.JustDown(this.rKey) && !this.isReloading && this.bulletsInChamber < 6) {
+                this.reloadGun();
+            }
+
+            // Play or stop animation based on horizontal movement
+            if (my.sprite.player) {
+                if (this.wasCrouching === undefined) this.wasCrouching = false;
+
+                let currentAnim = my.sprite.player.anims.currentAnim?.key;
+                let currentKey = my.sprite.player.texture.key;
+                let isShooting = currentAnim === "xeno-grunt-range-attack" && my.sprite.player.anims.isPlaying;
+                let isPoundingAnim = (currentAnim === "xeno-grunt-attack-2" || currentAnim === "xeno-grunt-attack-1") && my.sprite.player.anims.isPlaying;
+
+                let targetOffsetX = 70;
+                let targetOffsetY = 225; // Default standing offset
+                
+                // Prioritize the shoot animation offset!
+                // If shooting mid-air, we keep the standing offset (225) so the sprite doesn't physically detach from the hitbox
+                if (!onGround && !isCrouching && this.knockbackTimer <= 0 && !this.isGroundPounding && !isPoundingAnim && !isShooting) {
+                    targetOffsetX = 150; // Jumping X offset
+                    targetOffsetY = 100; // Jumping Y offset
+                }
+
+                if (this.knockbackTimer > 0) {
+                    if (currentKey !== "xeno-grunt-knockback") {
+                        my.sprite.player.stop();
+                        my.sprite.player.setTexture("xeno-grunt-knockback", 0); 
+                    }
+                    this.wasCrouching = false;
+                } else if (this.isGroundPounding || isPoundingAnim) {
+                    // Let the attack-2 and attack-1 animations play out seamlessly
+                    this.wasCrouching = false;
+                } else if (isCrouching) {
+                    if (!this.wasCrouching) {
+                        let wasJumping = my.sprite.player.body.offset.y === 100; // Check if we were in the jumping hitbox before crouching
+                        my.sprite.player.stop();
+                        my.sprite.player.setTexture("xeno-grunt-prep-jump", 0);
+                        my.sprite.player.body.setSize(70, 60, false); // Half height for ducking
+                        my.sprite.player.body.setOffset(70, 260); // Push bounding box down to the feet
+                        this.wasCrouching = true;
+                        //this.sound.play("sillyBoing", { volume: 0.5 });
+
+                        // If crouching while in the air (jumping bounding box), adjust the sprite 
+                        // so the physical body doesn't instantly teleport downwards into the floor
+                        if (wasJumping) {
+                            my.sprite.player.x += 36;
+                            my.sprite.player.y -= 56.25;
+                        } 
+                    }
+                } else {
+                    if (this.wasCrouching) {
+                        my.sprite.player.setTexture("xeno-grunt-range-attack", 0);
+                        my.sprite.player.body.setSize(70, 95, false); // Restore full height
+                        my.sprite.player.body.setOffset(70, 225); // Restore offset
+                        this.wasCrouching = false;
+                    }
+
+                    if (!isShooting) {
+                        if (!onGround) {
+                            if (currentKey !== "xeno-grunt-jumping") {
+                                my.sprite.player.stop();
+                                my.sprite.player.setTexture("xeno-grunt-jumping", 0);
+                            }
+                        } else {
+                            if (onActualGround || isMoving) {
+                                my.sprite.player.play("xeno-grunt-run", true);
+                            } else {
+                                my.sprite.player.play("xeno-grunt-idle", true);
+                            }
+                        }
+                    }
+                }
+
+                // Apply jumping offset compensation if not currently crouching
+                // This adjusts the sprite X and Y to perfectly counter the offset shift so the body NEVER moves
+                if (!isCrouching && !this.wasCrouching) {
+                    if (targetOffsetY === 100 && my.sprite.player.body.offset.y !== 100) {
+                        my.sprite.player.body.setSize(70, 95, false);
+                        my.sprite.player.body.setOffset(150, 100);
+                        my.sprite.player.x -= 36; 
+                        my.sprite.player.y += 56.25; 
+                    } else if (targetOffsetY === 225 && my.sprite.player.body.offset.y !== 225) {
+                        my.sprite.player.body.setSize(70, 95, false);
+                        my.sprite.player.body.setOffset(70, 225);
+                        my.sprite.player.x += 36;
+                        my.sprite.player.y -= 56.25;
+                    }
                 }
             }
+
         }
 
         // Remove all of the bullets which are offscreen
@@ -525,25 +954,43 @@ class ArcadeShooter extends Phaser.Scene {
             }
         });
 
-        // Filter destroyed enemies to prevent memory leaks
+        // Filter destroyed enemies to prevent memory leaks, or despawn if completely off-screen left
         my.sprite.enemies = my.sprite.enemies.filter((enemy) => {
-            if (enemy.visible) {
+            if (enemy.visible && enemy.x > -(enemy.displayWidth || 100)) {
                 return true;
             } else {
+                if (enemy.walkSound) {
+                    if (!enemy.visible) {
+                        // Enemy was killed (visible was set to false), stop sound instantly
+                        enemy.walkSound.stop();
+                    } else {
+                        // Enemy safely wandered off-screen, fade out over 1 second
+                        this.tweens.add({
+                            targets: enemy.walkSound,
+                            volume: 0,
+                            duration: 1000,
+                            onComplete: (tween, targets) => {
+                                targets[0].stop();
+                            }
+                        });
+                    }
+                }
                 enemy.destroy();
                 return false;
             }
         });
 
-        // Round progression disabled while no enemies are implemented
-        // if (this.myHealth > 0 && my.sprite.enemies.length === 0) {
-        //     this.currentRound++;
-        //     this.updateRound();
-        //     this.spawnRound(this.currentRound);
-        //     this.showRoundAnnouncement(this.currentRound);
-        // }
+        // Filter dead enemies completely off-screen left
+        my.sprite.deadEnemies = my.sprite.deadEnemies.filter((dead) => {
+            if (dead.x > -(dead.displayWidth || 100)) {
+                return true;
+            } else {
+                dead.destroy();
+                return false;
+            }
+        });
 
-        // Move and update enemies (placeholder — new enemies will be implemented in bigZombie/smallZombie)
+        // Move and update enemies
         for (let enemy of my.sprite.enemies) {
             if (enemy.visible && enemy.update) {
                 enemy.update(time, dt);
@@ -557,58 +1004,75 @@ class ArcadeShooter extends Phaser.Scene {
                     bullet.x = game.config.width + 100; // Move bullet offscreen to be despawned
 
                     // Generic enemy hit logic
+                    let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
                     if (enemy.hp !== undefined) {
                         enemy.hp -= 1;
                         if (enemy.hp <= 0) {
-                            let enemyExplosion = this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(2).play("enemyExplosion");
+                            this.playZombieDeathVisual(enemy);
                             enemy.visible = false;
                             enemy.x = -100;
                             this.myScore += (enemy.scorePoints || 100);
                             this.updateScore();
-                            this.sound.play("explosion", { volume: 1 });
+                            this.sound.play(deathSound, { volume: 1 });
                         } else {
-                            this.sound.play("explosion", { volume: 0.5 });
+                            this.sound.play("explosion", { volume: 1 });
                         }
                     } else {
-                        let enemyExplosion = this.add.sprite(enemy.x, enemy.y, "explosion-1").setScale(2).play("enemyExplosion");
+                        this.playZombieDeathVisual(enemy);
                         enemy.visible = false;
                         enemy.x = -100;
                         this.myScore += (enemy.scorePoints || 100);
                         this.updateScore();
-                        this.sound.play("explosion", { volume: 1 });
+                        this.sound.play(deathSound, { volume: 1 });
                     }
+                    break; // Stop checking this bullet against other enemies since it already hit one
                 }
             }
         }
 
         // Check for collision with the PLAYER
         if (this.myHealth > 0) {
+            let isPoundingAnim = false;
+            if (my.sprite.player && my.sprite.player.anims) {
+                let currentAnim = my.sprite.player.anims.currentAnim?.key;
+                isPoundingAnim = (currentAnim === "xeno-grunt-attack-2" || currentAnim === "xeno-grunt-attack-1") && my.sprite.player.anims.isPlaying;
+            }
+
             // 1. Player vs Enemy Body Collision
             for (let enemy of my.sprite.enemies) {
                 if (enemy.visible && this.collides(my.sprite.player, enemy)) {
-                    let playerExplosion = this.add.sprite(my.sprite.player.x, my.sprite.player.y, "explosion-1").setScale(2).play("enemyExplosion");
+                    let playerDied = false;
 
-                    // Destroy the enemy on contact
-                    enemy.visible = false;
-                    enemy.x = -100;
-
-                    if (!this.invulnerable && !this.isGroundPounding) {
+                    if (!this.invulnerable && !this.isGroundPounding && !isPoundingAnim && this.damageInvulnTimer <= 0) {
                         this.myHealth -= 1;
-
-                        // Explode the health badge when taking damage
-                        if (this.myHealth >= 0) {
-                            let lostIconX = 30 + this.myHealth * 40;
-                            this.add.sprite(lostIconX, 570, "explosion-1").setScale(1.5).play("enemyExplosion");
-                        }
+                        this.damageInvulnTimer = 2000; // 2 seconds of invulnerability
+                        this.knockbackTimer = 500;     // 0.5 seconds of knockback visual
 
                         this.updateHealth();
-                        this.sound.play("explosion", { volume: 1 });
+                        this.sound.play("playerHit", { volume: 1 });
 
                         if (this.myHealth <= 0) {
-                            my.sprite.player.destroy();
+                            playerDied = true;
+                            my.sprite.player.visible = false;
+                            my.sprite.player.body.setEnable(false); // Stop physics interactions
+
+                            my.sprite.deadPlayer = this.add.sprite(my.sprite.player.x, my.sprite.player.body.bottom, "xeno-grunt-death")
+                                .setScale(my.sprite.player.scaleX)
+                                .setOrigin(0.5, 1); // Anchor to feet
+                                
+                            if (my.sprite.player.facingDirection === -1) my.sprite.deadPlayer.setFlipX(true);
+
                             this.gameOver = true;
                             my.text.gameOver.visible = true;
+                            this.sound.play("gameOver", { volume: 3 });
                         }
+                    }
+
+                    // Only destroy the enemy on contact if it didn't kill the player
+                    if (!playerDied) {
+                        this.playZombieDeathVisual(enemy);
+                        enemy.visible = false;
+                        enemy.x = -100;
                     }
                 }
             }
@@ -616,30 +1080,36 @@ class ArcadeShooter extends Phaser.Scene {
             // 2. Player vs Enemy Bullet Collision
             for (let enemyBullet of my.sprite.enemyBullet) {
                 if (this.collides(my.sprite.player, enemyBullet)) {
-                    // start animation at player's location
-                    let playerExplosion = this.add.sprite(my.sprite.player.x, my.sprite.player.y, "explosion-1").setScale(2).play("enemyExplosion");
+                    // Immune to axe projectiles while crouched
+                    if (this.wasCrouching) continue;
+
                     // clear out enemy bullet -- put y offscreen bottom, will get reaped next update
                     enemyBullet.y = game.config.height + 100;
                     // Update health
-                    if (!this.invulnerable && !this.isGroundPounding) {
+                    if (!this.invulnerable && !this.isGroundPounding && !isPoundingAnim && this.damageInvulnTimer <= 0) {
                         this.myHealth -= 1;
-
-                        // Explode the health badge  
-                        if (this.myHealth >= 0) {
-                            let lostIconX = 30 + this.myHealth * 40;
-                            this.add.sprite(lostIconX, 570, "explosion-1").setScale(1.5).play("enemyExplosion");
-                        }
+                        this.damageInvulnTimer = 2000; // 2 seconds of invulnerability
+                        this.knockbackTimer = 500;     // 0.5 seconds of knockback visual
 
                         this.updateHealth();
                         // Play sound
-                        this.sound.play("explosion", {
+                        this.sound.play("playerHit", {
                             volume: 1   // Can adjust volume using this, goes from 0 to 1
                         });
 
                         if (this.myHealth <= 0) {
-                            my.sprite.player.destroy();
+                            my.sprite.player.visible = false;
+                            my.sprite.player.body.setEnable(false); // Stop physics interactions
+                            
+                            my.sprite.deadPlayer = this.add.sprite(my.sprite.player.x, my.sprite.player.body.bottom, "xeno-grunt-death")
+                                .setScale(my.sprite.player.scaleX)
+                                .setOrigin(0.5, 1); // Anchor to feet
+                                
+                            if (my.sprite.player.facingDirection === -1) my.sprite.deadPlayer.setFlipX(true);
+
                             this.gameOver = true;
                             my.text.gameOver.visible = true;
+                            this.sound.play("gameOver", { volume: 1 });
                         }
                     }
                 }
@@ -691,11 +1161,10 @@ class ArcadeShooter extends Phaser.Scene {
         let children = this.platforms.getChildren();
         // The newly created platform is at the end of the children array.
         let lastPlatform = children.length > 1 ? children[children.length - 2] : null;
-        
+
         // Calculate player's max jump height dynamically
         let jumpHeight = (this.jumpSpeed * this.jumpSpeed) / (2 * this.physics.world.gravity.y);
         let maxRise = Math.floor(0.66 * jumpHeight);
-        let minDistance = spriteHeight + 40; // To prevent any overlap on the Y axis
 
         let validY = false;
         let attempts = 0;
@@ -706,17 +1175,20 @@ class ArcadeShooter extends Phaser.Scene {
         } else {
             while (!validY && attempts < 50) {
                 y = Phaser.Math.Between(zone.top + Math.floor(spriteHeight / 2), zone.bottom - Math.floor(spriteHeight / 2));
-                
+
                 // Rule 1: If spawning higher (lower Y value), it cannot exceed 2/3 of player's jump
                 if (lastPlatform && y < lastPlatform.y && (lastPlatform.y - y) > maxRise) {
                     attempts++;
                     continue;
                 }
 
-                // Rule 3: No two platforms onscreen can overlap on the Y axis
+                // Rule 3: No two platforms onscreen can overlap on both the X and Y axes
                 let overlaps = false;
                 for (let i = 0; i < children.length - 1; i++) { // Check against all EXCEPT the newly created one
-                    if (Math.abs(y - children[i].y) < minDistance) {
+                    let other = children[i];
+                    let minDistX = (platform.displayWidth / 2) + (other.displayWidth / 2) + 50; // 50px X buffer
+                    let minDistY = (platform.displayHeight / 2) + (other.displayHeight / 2) + 40; // 40px Y buffer
+                    if (Math.abs(x - other.x) < minDistX && Math.abs(y - other.y) < minDistY) {
                         overlaps = true;
                         break;
                     }
@@ -729,22 +1201,101 @@ class ArcadeShooter extends Phaser.Scene {
 
                 validY = true;
             }
+        }
 
-            // If we failed to find a valid non-overlapping Y after 50 attempts, enforce the jump height rule
-            if (!validY && lastPlatform && y < lastPlatform.y && (lastPlatform.y - y) > maxRise) {
+        // If we failed to find a valid non-overlapping Y after 50 attempts (or forcedY was used), fix it!
+        if (!validY) {
+            // First, enforce the jump height rule if we fell out of the loop
+            if (forcedY === null && lastPlatform && y < lastPlatform.y && (lastPlatform.y - y) > maxRise) {
                 y = lastPlatform.y - maxRise;
                 y = Math.max(zone.top + Math.floor(spriteHeight / 2), y);
             }
+
+            // Now that Y is determined, push X to the right until it is clear of all overlaps
+            let safeXFound = false;
+            while (!safeXFound) {
+                let overlaps = false;
+                for (let i = 0; i < children.length - 1; i++) {
+                    let other = children[i];
+                    let minDistX = (platform.displayWidth / 2) + (other.displayWidth / 2) + 50;
+                    let minDistY = (platform.displayHeight / 2) + (other.displayHeight / 2) + 40;
+                    if (Math.abs(x - other.x) < minDistX && Math.abs(y - other.y) < minDistY) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+                if (!overlaps) {
+                    safeXFound = true;
+                } else {
+                    x += 100; // Shift right by 100 pixels and try again
+                }
+            }
         }
 
+        platform.x = x;
         platform.y = y;
 
-        // Use constant platform speed
-        let speed = this.platformConfig.platformSpeed;
+        // Use dynamic platform speed
+        let speed = this.currentPlatformSpeed;
 
         this.platformSpawnCount += 1;
         platform.isGroundSpawn = isGroundSpawn;
         this.addPlatformInstance(platform, textureWidth, textureHeight, speed, zoneIndex);
+
+        // If a high platform was spawned, also spawn a low platform slightly offset on the X axis
+        if (!isGroundSpawn && forcedY === null && y < (game.config.height / 2) - 50) {
+            let offsetX = Phaser.Math.Between(150, 350); // Slight X offset so they aren't perfectly stacked
+            let lowX = x + offsetX;
+            let spriteKeyLow = Phaser.Utils.Array.GetRandom(this.platformSpriteKeys);
+            let platformLow = this.platforms.create(lowX, 0, spriteKeyLow).setOrigin(0.5).setScale(pScale);
+            
+            let lowValidY = false;
+            let lowAttempts = 0;
+            let lowY = 0;
+            let allPlatforms = this.platforms.getChildren();
+            
+            while (!lowValidY && lowAttempts < 50) {
+                lowY = Phaser.Math.Between((game.config.height / 2) + 50, game.config.height - this.platformConfig.zoneBottomMargin);
+                let overlaps = false;
+                for (let i = 0; i < allPlatforms.length - 1; i++) { // Check against existing
+                    let other = allPlatforms[i];
+                    let minDistX = (platformLow.displayWidth / 2) + (other.displayWidth / 2) + 50; // 50px X buffer
+                    let minDistY = (platformLow.displayHeight / 2) + (other.displayHeight / 2) + 40; // 40px Y buffer
+                    if (Math.abs(lowX - other.x) < minDistX && Math.abs(lowY - other.y) < minDistY) {
+                        overlaps = true;
+                        break;
+                    }
+                }
+                if (!overlaps) lowValidY = true;
+                lowAttempts++;
+            }
+            
+            // If it STILL overlaps after 50 attempts, push lowX to the right
+            if (!lowValidY) {
+                let safeXFound = false;
+                while (!safeXFound) {
+                    let overlaps = false;
+                    for (let i = 0; i < allPlatforms.length - 1; i++) {
+                        let other = allPlatforms[i];
+                        let minDistX = (platformLow.displayWidth / 2) + (other.displayWidth / 2) + 50;
+                        let minDistY = (platformLow.displayHeight / 2) + (other.displayHeight / 2) + 40;
+                        if (Math.abs(lowX - other.x) < minDistX && Math.abs(lowY - other.y) < minDistY) {
+                            overlaps = true;
+                            break;
+                        }
+                    }
+                    if (!overlaps) safeXFound = true;
+                    else lowX += 100;
+                }
+            }
+
+            platformLow.x = lowX;
+            platformLow.y = lowY;
+            
+            let lowTexWidth = platformLow.width;
+            let lowTexHeight = platformLow.height;
+            this.addPlatformInstance(platformLow, lowTexWidth, lowTexHeight, speed, this.numZones - 1);
+        }
     }
 
     addPlatformInstance(platform, spriteWidth, spriteHeight, speed, zoneIndex) {
@@ -766,12 +1317,52 @@ class ArcadeShooter extends Phaser.Scene {
 
         platform._spawnMeta = { zoneIndex: zoneIndex, speed: speed, patternId: null };
         this.platforms.add(platform);
+
+        // 25% chance to spawn an Axe Zombie resting on this platform
+        if (this.gameState === "PLAYING" && Phaser.Math.Between(1, 100) <= 25) {
+            this.spawnAxeZombie(platform);
+        }
     }
 
-    // A center-radius AABB collision check
+    // A center-radius AABB collision check, updated to use precise physics bodies when available!
     collides(a, b) {
-        if (Math.abs(a.x - b.x) > (a.displayWidth / 2 + b.displayWidth / 2)) return false;
-        if (Math.abs(a.y - b.y) > (a.displayHeight / 2 + b.displayHeight / 2)) return false;
+        const getBounds = (obj) => {
+            if (obj.body) {
+                // Prioritize the tightly configured physics hitbox if it exists
+                return {
+                    left: obj.body.left,
+                    right: obj.body.right,
+                    top: obj.body.top,
+                    bottom: obj.body.bottom
+                };
+            } else {
+                // Fallback to visual bounds, but shrink non-physics projectiles by 40% so hits don't feel cheap
+                let originX = obj.originX !== undefined ? obj.originX : 0.5;
+                let originY = obj.originY !== undefined ? obj.originY : 0.5;
+                
+                let scaleReduction = 0.6; // 60% of original visual size
+                let w = obj.displayWidth * scaleReduction; 
+                let h = obj.displayHeight * scaleReduction;
+                
+                let centerX = obj.x - (obj.displayWidth * (originX - 0.5));
+                let centerY = obj.y - (obj.displayHeight * (originY - 0.5));
+                
+                return {
+                    left: centerX - (w / 2),
+                    right: centerX + (w / 2),
+                    top: centerY - (h / 2),
+                    bottom: centerY + (h / 2)
+                };
+            }
+        };
+
+        let boxA = getBounds(a);
+        let boxB = getBounds(b);
+        
+        // AABB overlap check
+        if (boxA.right < boxB.left || boxA.left > boxB.right) return false;
+        if (boxA.bottom < boxB.top || boxA.top > boxB.bottom) return false;
+        
         return true;
     }
 
@@ -802,7 +1393,6 @@ class ArcadeShooter extends Phaser.Scene {
         // Check if we beat the high score, update value and color if we did
         if (this.myScore > this.highScore) {
             this.highScore = this.myScore;
-            this.highScoreColor = this.playerColor;
             this.updateHighScoreUI();
         }
     }
@@ -811,7 +1401,7 @@ class ArcadeShooter extends Phaser.Scene {
         let my = this.my;
         my.text.highScore.setText("High " + this.highScore);
         if (this.highScore > 0) {
-            my.sprite.highScoreBadge.setTexture(`alien${this.highScoreColor}_badge2`);
+            my.sprite.highScoreBadge.setTexture("xeno-grunt-range-attack", 0);
             my.sprite.highScoreBadge.visible = true;
         }
     }
@@ -827,29 +1417,80 @@ class ArcadeShooter extends Phaser.Scene {
         }
         my.sprite.healthIcons = [];
 
-        // Generate new icons
-        for (let i = 0; i < this.myHealth; i++) {
-            let icon = this.add.sprite(30 + i * 40, 570, `alien${this.playerColor}_badge1`).setScale(0.8);
+        // Generate new icons (always draw 3, show empty frame 3 if health is lost)
+        for (let i = 0; i < 3; i++) {
+            let frame = (i < this.myHealth) ? 0 : 3;
+            let icon = this.add.sprite(30 + i * 50, 30, "hearts", frame).setScale(3);
             my.sprite.healthIcons.push(icon);
         }
     }
 
-    updateRound() {
-        let my = this.my;
-        my.text.round.setText("Round " + this.currentRound);
+    spawnSmallZombie() {
+        new SmallZombie(this);
     }
 
-    showRoundAnnouncement(round) {
-        let my = this.my;
-        my.text.roundAnnounce.setText("Round " + round);
-        my.text.roundAnnounce.visible = true;
-        this.time.delayedCall(2000, () => {
-            my.text.roundAnnounce.visible = false;
+    spawnBigZombie() {
+        new BigZombie(this);
+    }
+
+    spawnJumperZombie() {
+        new JumperZombie(this);
+    }
+
+    spawnAxeZombie(platform) {
+        if (!platform || !platform.active) return;
+        new AxeZombie(this, platform);
+    }
+
+    reloadGun() {
+        // Prevent spamming the reload or reloading when already full
+        if (this.isReloading || this.bulletsInChamber === 6) return;
+        
+        this.isReloading = true;
+        this.sound.play("revolverSpin");
+        
+        // Approximate timing: 800ms for spin to finish, then play cock sound, then wait 400ms to allow firing.
+        // You can tweak these timer values to perfectly match the duration of your audio files!
+        this.time.delayedCall(50, () => {
+            this.sound.play("revolverCock");
+            this.time.delayedCall(600, () => {
+                this.bulletsInChamber = 6;
+                this.isReloading = false;
+            });
         });
     }
 
-    spawnRound(round) {
-        // TODO: Implement new enemy spawning using bigZombie and smallZombie
-        // For now this is a placeholder
+    playZombieDeathVisual(enemy) {
+        let animKey = "smallZombieDeathAnim";
+        let spriteKey = "smallZombieDeath";
+        
+        if (enemy.type === "big") {
+            animKey = "bigZombieDeathAnim";
+            spriteKey = "bigZombieDeath";
+        } else if (enemy.type === "axe") {
+            animKey = "axeZombieDeathAnim";
+            spriteKey = "axeZombieDeath";
+        }
+        
+        let deathSprite = this.physics.add.sprite(enemy.x, enemy.y, spriteKey)
+            .setScale(enemy.scaleX, enemy.scaleY)
+            .setDepth(enemy.depth)
+            .play(animKey);
+            
+        // Anchor to the bottom of the previous sprite so feet stay firmly planted
+        let origY = enemy.originY !== undefined ? enemy.originY : 0.5;
+        let enemyBottom = enemy.y + (enemy.displayHeight * (1 - origY));
+        deathSprite.setOrigin(0.5, 1);
+        deathSprite.y = enemyBottom;
+
+        // Shift X to compensate for the death animation frame being a different width.
+        // By subtracting half the difference, we anchor the back edge of the sprite,
+        // which prevents the character from visually snapping backwards!
+        let widthDiff = (deathSprite.width - enemy.width) * enemy.scaleX;
+        deathSprite.x -= (widthDiff / 2);
+
+        deathSprite.body.setAllowGravity(false);
+        deathSprite.baseSpeed = enemy.baseSpeed; // Maintain the same momentum
+        this.my.sprite.deadEnemies.push(deathSprite);
     }
 }
