@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="20" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="7" nextobjectid="5">
+<map version="1.10" tiledversion="1.12.1" orientation="orthogonal" renderorder="right-down" width="20" height="15" tilewidth="16" tileheight="16" infinite="0" nextlayerid="8" nextobjectid="6">
+ <editorsettings>
+  <export target="spaceShip.tmj" format="json"/>
+ </editorsettings>
  <tileset firstgid="1" name="SpaceStation_Tileset" tilewidth="16" tileheight="16" tilecount="88" columns="11">
   <image source="SpaceStationAda/SpaceStation_Tileset.png" width="176" height="128"/>
   <tile id="0">
@@ -132,29 +135,7 @@
    <point/>
   </object>
  </objectgroup>
- <layer id="3" name="Boxes" width="20" height="15">
-  <properties>
-   <property name="collidable" type="bool" value="true"/>
-  </properties>
-  <data encoding="csv">
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,155,0,0,0,0,0,
-0,125,0,0,0,0,0,0,0,0,0,0,0,155,155,155,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,155,155,155,155,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,155,155,155,155,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
-</data>
- </layer>
- <layer id="5" name="Foreground" width="20" height="15">
+ <layer id="5" name="Foreground" width="20" height="15" locked="1">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,

@@ -294,20 +294,20 @@ class ArcadeShooter extends Phaser.Scene {
 
         this.platformSpawnTimer = Phaser.Math.Between(this.platformConfig.spawnIntervalRange[0], this.platformConfig.spawnIntervalRange[1]);
 
-        my.text.score = this.add.bitmapText(580, 5, "rocketSquare", "Score 0", 20);
+        my.text.score = this.add.text(580, 5, "Score 0", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FFFFFF' });
         my.text.score.visible = false;
 
         // High Score UI
-        my.text.highScore = this.add.bitmapText(580, 30, "rocketSquare", "High 0", 20);
+        my.text.highScore = this.add.text(580, 30, "High 0", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FFFFFF' });
         my.text.highScore.visible = false;
         my.sprite.highScoreBadge = this.add.sprite(760, 27, "xeno-grunt-range-attack", 0).setScale(0.09);
         my.sprite.highScoreBadge.visible = false; // Hide until a score is actually achieved
         // Small on-screen indicator for invulnerability (hidden by default)
-        my.text.invul = this.add.text(580, 55, "INVUL", { fontFamily: 'sans-serif', fontSize: '18px', fontStyle: 'bold', color: '#FF4444' }).setOrigin(0, 0);
+        my.text.invul = this.add.text(580, 55, "INVUL", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FF4444' }).setOrigin(0, 0);
         my.text.invul.visible = false;
         
         // Shift Cooldown UI
-        my.text.slamLabel = this.add.bitmapText(20, 570, "rocketSquare", "SLAM", 16);
+        my.text.slamLabel = this.add.text(20, 570, "SLAM", { fontFamily: 'PressStart2P', fontSize: '14px', color: '#FFFFFF' });
         my.text.slamLabel.visible = false;
         this.slamBarBg = this.add.graphics();
         this.slamBarBg.fillStyle(0x000000, 0.5);
@@ -319,14 +319,14 @@ class ArcadeShooter extends Phaser.Scene {
         this.slamBar.visible = false;
 
         // Title Screen Text
-        my.text.titleTextShadow1 = this.add.text(game.config.width / 2 + 3, game.config.height / 2 - 63, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.titleTextShadow2 = this.add.text(game.config.width / 2 + 6, game.config.height / 2 - 66, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.titleText = this.add.text(game.config.width / 2, game.config.height / 2 - 60, "VENDETTA", { fontFamily: 'sans-serif', fontSize: '64px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.authorText = this.add.text(game.config.width / 2, game.config.height / 2 + 20, "Created by Mason Reoch", { fontFamily: 'sans-serif', fontSize: '24px', fontStyle: 'italic bold', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.startText = this.add.bitmapText(game.config.width / 2, game.config.height / 2 + 80, "rocketSquare", "Press SPACE to Start", 24).setOrigin(0.5);
+        my.text.titleTextShadow1 = this.add.text(game.config.width / 2 + 3, game.config.height / 2 - 63, "VENDETTA", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#888888' }).setOrigin(0.5);
+        my.text.titleTextShadow2 = this.add.text(game.config.width / 2 + 6, game.config.height / 2 - 66, "VENDETTA", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#444444' }).setOrigin(0.5);
+        my.text.titleText = this.add.text(game.config.width / 2, game.config.height / 2 - 60, "VENDETTA", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.authorText = this.add.text(game.config.width / 2, game.config.height / 2 + 20, "Created by Mason Reoch", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.startText = this.add.text(game.config.width / 2, game.config.height / 2 + 80, "Press SPACE to Start", { fontFamily: 'PressStart2P', fontSize: '18px', color: '#FFFFFF' }).setOrigin(0.5);
 
         // Game Over text
-        my.text.gameOver = this.add.bitmapText(game.config.width / 2, game.config.height / 2, "rocketSquare", "GAME OVER\nPress R to Restart").setOrigin(0.5).setCenterAlign();
+        my.text.gameOver = this.add.text(game.config.width / 2, game.config.height / 2, "GAME OVER\nPress R to Restart", { fontFamily: 'PressStart2P', fontSize: '24px', color: '#FFFFFF', align: 'center' }).setOrigin(0.5);
         my.text.gameOver.visible = false;
 
         // Health/logo indicators (can be used for display during gameplay)

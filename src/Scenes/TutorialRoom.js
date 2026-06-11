@@ -8,7 +8,7 @@ class TutorialRoom extends Phaser.Scene {
         this.load.setPath("./assets/");
 
         // 1. Load the Tilemap
-        this.load.tilemapTiledJSON("tutorialMap", "SpaceStationAda/spaceShip.tmj");
+        this.load.tilemapTiledJSON("tutorialMap", "spaceShip.tmj");
 
         // 2. Load the Tileset Image
         // NOTE: Make sure this exactly matches the PNG file in your assets folder!
@@ -61,8 +61,12 @@ class TutorialRoom extends Phaser.Scene {
         const tilesetsArray = [tileset1, tileset2];
         const backgroundLayer = map.createLayer("BG", tilesetsArray, 0, 0);
         const wallLayer = map.createLayer("Walls", tilesetsArray, 0, 0);
-        const boxesLayer = map.createLayer("Boxes", tilesetsArray, 0, 0);
+        const boxesLayer = map.layers.some(l => l.name === "Boxes") ? map.createLayer("Boxes", tilesetsArray, 0, 0) : null;
         const foregroundLayer = map.createLayer("Foreground", tilesetsArray, 0, 0);
+
+        // Expose layers for external physics collision queries (e.g. Player corpse collision)
+        this.wallLayer = wallLayer;
+        this.boxesLayer = boxesLayer;
 
         // Scale the map up by 2.5 so the 16x16 tiles look good on an 800x600 screen
         const mapScale = 2.5;
@@ -177,16 +181,44 @@ class TutorialRoom extends Phaser.Scene {
         // Initialize platforms group for smash tutorial
         this.platforms = this.physics.add.group({ immovable: true, allowGravity: false });
 
-        let platformX = zombieX - 25 * mapScale ; // slightly to the left of the zombie
-        let platformY = zombieY  - 60;           // above the zombie
-        let platform = this.platforms.create(platformX, platformY, "platform1").setScale(1.5);
-        platform.body.setImmovable(true);
-        platform.body.allowGravity = false;
-        platform.body.setSize(platform.width, platform.height, true);
-        platform.body.checkCollision.up = true;
-        platform.body.checkCollision.down = false;
-        platform.body.checkCollision.left = false;
-        platform.body.checkCollision.right = false;
+        // ====================================================================
+        // PLATFORM CONFIGURATION SECTION
+        // Feel free to adjust these values to move or customize the stacks!
+        // ====================================================================
+        const platformXOffset = -110;     // Adjust this to move all platform stacks left/right together
+        const columnHeights = [2, 4, 3];  // Heights of the first (left), next (middle), and last (right) stacks
+        const platformScale = 1.5;        // Visual scale of the platforms
+        const platformSpacingY = 35;      // Vertical spacing between platform centers in each stack
+        // ====================================================================
+
+        // Helper to determine the dynamic width of the platform sprite for perfect horizontal spacing
+        let tempPlatform = this.add.sprite(0, 0, "platform1").setScale(platformScale);
+        const platformDisplayWidth = tempPlatform.displayWidth;
+        tempPlatform.destroy();
+
+        let basePlatformX = zombieX + platformXOffset;
+        const bottomY = zombieY + 4;
+
+        // Create the 3 columns of platform stacks
+        for (let col = 0; col < columnHeights.length; col++) {
+            // Offset each column horizontally by its index relative to the center column
+            let colX = basePlatformX + (col - 1) * platformDisplayWidth;
+            let numPlatforms = columnHeights[col];
+
+            for (let i = 0; i < numPlatforms; i++) {
+                let platformY = bottomY - i * platformSpacingY;
+                let platform = this.platforms.create(colX, platformY, "platform1").setScale(platformScale);
+                platform.body.setImmovable(true);
+                platform.body.allowGravity = false;
+                platform.body.setSize(platform.width, platform.height, true);
+
+                // Enable all-sided collision so the stacks block the player path horizontally and vertically
+                platform.body.checkCollision.up = true;
+                platform.body.checkCollision.down = true;
+                platform.body.checkCollision.left = true;
+                platform.body.checkCollision.right = true;
+            }
+        }
 
         // Player vs Platforms collider (saved to platformCollider so Player.js can toggle it)
         this.platformCollider = this.physics.add.collider(this.my.sprite.player, this.platforms);

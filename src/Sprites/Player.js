@@ -200,7 +200,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                     let px = this.x;
                     let py = this.y + this.displayHeight * (1 - this.originY); // Ground level (feet of player)
 
-                    for (let i = 0; i < 3; i++) {
+                    for (let i = 0; i < 2; i++) {
                         this.scene.time.delayedCall(i * 60, () => {
                             if (!this.active) return;
 
@@ -261,33 +261,29 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                     this.scene.add.sprite(platform.x, platform.y, "explosion-1").setScale(2).play("enemyExplosion");
                     this.scene.removePlatform(platform);
                     this.playSound("explosion", { volume: 0.8 });
-                });
-            }
 
-            // Kill all enemies beneath player
-            if (this.scene.my && this.scene.my.sprite && this.scene.my.sprite.enemies) {
-                for (let enemy of this.scene.my.sprite.enemies) {
-                    if (enemy.visible) {
-                        let dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
-                        let dx = Math.abs(this.x - enemy.x);
-                        let dy = enemy.y - this.y;
-
-                        let isBeneath = dy > 0 && dx < 80;
-                        if (dist < 150 || isBeneath) {
-                            this.scene.playZombieDeathVisual(enemy);
-                            enemy.visible = false;
-                            enemy.x = -100;
-                            if (this.scene.myScore !== undefined) {
-                                this.scene.myScore += (enemy.scorePoints || 100);
+                    // Kill all enemies within the spawned platform explosion (120px radius)
+                    if (this.scene.my && this.scene.my.sprite && this.scene.my.sprite.enemies) {
+                        for (let enemy of this.scene.my.sprite.enemies) {
+                            if (enemy.visible) {
+                                let dist = Phaser.Math.Distance.Between(platform.x, platform.y, enemy.x, enemy.y);
+                                if (dist < 120) {
+                                    this.scene.playZombieDeathVisual(enemy);
+                                    enemy.visible = false;
+                                    enemy.x = -100;
+                                    if (this.scene.myScore !== undefined) {
+                                        this.scene.myScore += (enemy.scorePoints || 100);
+                                    }
+                                    if (this.scene.updateScore) {
+                                        this.scene.updateScore();
+                                    }
+                                    let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
+                                    this.playSound(deathSound, { volume: 1 });
+                                }
                             }
-                            if (this.scene.updateScore) {
-                                this.scene.updateScore();
-                            }
-                            let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
-                            this.playSound(deathSound, { volume: 1 });
                         }
                     }
-                }
+                });
             }
         }
 
@@ -504,12 +500,36 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.visible = false;
         this.body.setEnable(false);
 
-        let deadPlayer = this.scene.add.sprite(this.x, this.body.bottom, "xeno-grunt-death")
+        // Spawn the deadPlayer as a physics sprite so it experiences gravity and physics
+        let deadPlayer = this.scene.physics.add.sprite(this.x, this.y, "xeno-grunt-death")
             .setScale(this.scaleX)
-            .setOrigin(0.5, 1);
+            .setOrigin(this.originX, this.originY);
 
         if (this.facingDirection === -1) {
             deadPlayer.setFlipX(true);
+        }
+
+        // Mirror the player's exact physics body properties and collision geometry
+        deadPlayer.body.setSize(this.body.width, this.body.height, false);
+        deadPlayer.body.setOffset(this.body.offset.x, this.body.offset.y);
+        deadPlayer.setCollideWorldBounds(true);
+
+        // Carry over the player's momentum (velocity) at death
+        deadPlayer.body.setVelocity(this.body.velocity.x, this.body.velocity.y);
+        deadPlayer.body.setDragX(150); // Add horizontal drag to slide smoothly to a stop
+
+        // Dynamically add colliders with whatever environmental features exist in the active scene
+        if (this.scene.ground) {
+            this.scene.physics.add.collider(deadPlayer, this.scene.ground);
+        }
+        if (this.scene.platforms) {
+            this.scene.physics.add.collider(deadPlayer, this.scene.platforms);
+        }
+        if (this.scene.wallLayer) {
+            this.scene.physics.add.collider(deadPlayer, this.scene.wallLayer);
+        }
+        if (this.scene.boxesLayer) {
+            this.scene.physics.add.collider(deadPlayer, this.scene.boxesLayer);
         }
 
         this.scene.my.sprite.deadPlayer = deadPlayer;

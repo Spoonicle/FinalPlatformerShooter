@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Bullet Time</title>
+    <style>
+        @font-face {
+            font-family: 'PressStart2P';
+            src: url('./assets/press_start_2p/PressStart2P.ttf') format('truetype');
+        }
+    </style>
     <script src="./lib/phaser.js"></script>
     <script src="./src/Sprites/Player.js"></script>
     <script src="./src/Scenes/ArcadeShooter.js"></script>
@@ -15,6 +21,8 @@
     <script src="./src/main.js"></script>
 </head>
 <body>
+    <!-- Hidden element to force font loading prior to Phaser execution -->
+    <div style="font-family: 'PressStart2P'; position: absolute; left: -9999px; visibility: hidden;">Preload PressStart2P</div>
     <div id="phaser-game"></div>
     <span id="description"></span>
 </body>
