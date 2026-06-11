@@ -26,7 +26,7 @@ let config = {
         default: 'arcade',
         arcade: {
             gravity: { y: 5500 },
-            debug: true
+            debug: false
         }
     },
     scene: [TutorialRoom, ArcadeShooter]

@@ -85,11 +85,8 @@ class ArcadeShooter extends Phaser.Scene {
         this.load.image("axeZombieDeath", "Zombie_Axe_Side-left_Second-Death-Sheet7.png");
         this.load.image("axeZombieIdle", "Zombie_Axe_Side-left_Idle-Sheet6.png");
 
+        SmallZombie.preload(this);
         this.load.setPath("./assets/small_Zombie/");
-        this.load.image("smallZombieAttack1", "Zombie_Small_Side-left_First-Attack-Sheet4.png");
-        this.load.image("smallZombieAttack2", "Zombie_Small_Side-left_Second-Attack-Sheet11.png");
-        this.load.image("smallZombieDeath", "Zombie_Small_Side-left_Second-Death-Sheet7.png");
-        this.load.image("smallZombieWalk", "Zombie_Small_Side-left_Walk-Sheet6.png");
         this.load.image("axeThrown", "Axe_Side-left_Thrown-Sheet9.png"); // Load thrown axe projectile
         
         this.load.setPath("./assets/");
@@ -190,10 +187,6 @@ class ArcadeShooter extends Phaser.Scene {
             { key: "axeZombieAttack", frames: 9 },
             { key: "axeZombieDeath", frames: 7 },
             { key: "axeZombieIdle", frames: 6 },
-            { key: "smallZombieAttack1", frames: 4 },
-            { key: "smallZombieAttack2", frames: 11 },
-            { key: "smallZombieDeath", frames: 7 },
-            { key: "smallZombieWalk", frames: 6 },
             { key: "axeThrown", frames: 9 }
         ];
 
@@ -230,10 +223,7 @@ class ArcadeShooter extends Phaser.Scene {
         this.anims.create({ key: 'axeThrownAnim', frames: getZombieFrames('axeThrown', 9), frameRate: 15, repeat: -1 });
 
         // Small Zombie Animations
-        this.anims.create({ key: 'smallZombieWalkAnim', frames: getZombieFrames('smallZombieWalk', 6), frameRate: 8, repeat: -1 });
-        this.anims.create({ key: 'smallZombieAttack1Anim', frames: getZombieFrames('smallZombieAttack1', 4), frameRate: 8, repeat: 0 });
-        this.anims.create({ key: 'smallZombieAttack2Anim', frames: getZombieFrames('smallZombieAttack2', 11), frameRate: 8, repeat: 0 });
-        this.anims.create({ key: 'smallZombieDeathAnim', frames: getZombieFrames('smallZombieDeath', 7), frameRate: 8, repeat: 0 });
+        SmallZombie.initTexturesAndAnims(this);
 
         // Create key objects
         this.up = this.input.keyboard.addKey("W");
@@ -999,8 +989,13 @@ class ArcadeShooter extends Phaser.Scene {
 
 
     playZombieDeathVisual(enemy) {
-        let animKey = "smallZombieDeathAnim";
-        let spriteKey = "smallZombieDeath";
+        if (enemy.type === "small" || enemy.type === "jumper") {
+            SmallZombie.playDeathVisual(this, enemy);
+            return;
+        }
+
+        let animKey = "";
+        let spriteKey = "";
         
         if (enemy.type === "big") {
             animKey = "bigZombieDeathAnim";

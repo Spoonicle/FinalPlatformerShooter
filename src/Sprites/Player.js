@@ -1,7 +1,7 @@
 class Player extends Phaser.Physics.Arcade.Sprite {
     constructor(scene, x, y) {
         super(scene, x, y, "xeno-grunt-idle", 0);
-        
+
         // Add to scene and enable physics
         scene.add.existing(this);
         scene.physics.add.existing(this);
@@ -198,14 +198,14 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                 // Outward shockwave explosions (ArcadeShooter)
                 if (this.scene.my && this.scene.my.sprite && this.scene.my.sprite.enemies) {
                     let px = this.x;
-                    let py = this.y + 40; // Ground level
-                    
+                    let py = this.y + this.displayHeight * (1 - this.originY); // Ground level (feet of player)
+
                     for (let i = 0; i < 3; i++) {
                         this.scene.time.delayedCall(i * 60, () => {
                             if (!this.active) return;
-                            
+
                             let spawnExplosionAndKill = (exX) => {
-                                this.scene.add.sprite(exX, py, "explosion-1").setScale(2).play("enemyExplosion");
+                                this.scene.add.sprite(exX, py, "explosion-1").setOrigin(0.5, 0.5).setScale(2).play("enemyExplosion");
                                 for (let enemy of this.scene.my.sprite.enemies) {
                                     if (enemy.visible) {
                                         let dist = Math.abs(exX - enemy.x);
@@ -214,8 +214,12 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                                             this.scene.playZombieDeathVisual(enemy);
                                             enemy.visible = false;
                                             enemy.x = -100;
-                                            this.scene.myScore += (enemy.scorePoints || 100);
-                                            this.scene.updateScore();
+                                            if (this.scene.myScore !== undefined) {
+                                                this.scene.myScore += (enemy.scorePoints || 100);
+                                            }
+                                            if (this.scene.updateScore) {
+                                                this.scene.updateScore();
+                                            }
                                             let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
                                             this.playSound(deathSound, { volume: 1 });
                                         }
@@ -250,7 +254,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         // Ground pound active movement and collision logic
         if (this.isGroundPounding) {
             this.setVelocityY(2000); // Force fast slam
-            
+
             // platform overlap destruction (ArcadeShooter)
             if (this.scene.platforms) {
                 this.scene.physics.overlap(this, this.scene.platforms, (player, platform) => {
@@ -267,14 +271,18 @@ class Player extends Phaser.Physics.Arcade.Sprite {
                         let dist = Phaser.Math.Distance.Between(this.x, this.y, enemy.x, enemy.y);
                         let dx = Math.abs(this.x - enemy.x);
                         let dy = enemy.y - this.y;
-                        
+
                         let isBeneath = dy > 0 && dx < 80;
                         if (dist < 150 || isBeneath) {
                             this.scene.playZombieDeathVisual(enemy);
                             enemy.visible = false;
                             enemy.x = -100;
-                            this.scene.myScore += (enemy.scorePoints || 100);
-                            this.scene.updateScore();
+                            if (this.scene.myScore !== undefined) {
+                                this.scene.myScore += (enemy.scorePoints || 100);
+                            }
+                            if (this.scene.updateScore) {
+                                this.scene.updateScore();
+                            }
                             let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
                             this.playSound(deathSound, { volume: 1 });
                         }

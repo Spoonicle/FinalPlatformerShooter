@@ -76,7 +76,7 @@
  <tileset firstgid="89" name="SpaceStation_Objects" tilewidth="16" tileheight="16" tilecount="132" columns="22">
   <image source="SpaceStationAda/SpaceStation_Objects.png" width="352" height="96"/>
  </tileset>
- <layer id="1" name="BG" width="20" height="15" visible="0">
+ <layer id="1" name="BG" width="20" height="15">
   <data encoding="csv">
 86,87,88,27,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,13,
 86,87,88,18,13,13,13,13,0,0,0,0,13,13,13,13,13,13,13,13,
@@ -117,7 +117,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <objectgroup id="4" name="Door" visible="0">
+ <objectgroup id="4" name="Door">
   <properties>
    <property name="Open" type="bool" value="true"/>
   </properties>
@@ -127,7 +127,7 @@
    </properties>
   </object>
  </objectgroup>
- <objectgroup id="6" name="PlayerSpawn" visible="0">
+ <objectgroup id="6" name="PlayerSpawn">
   <object id="3" x="23.6667" y="130.667">
    <point/>
   </object>
@@ -154,7 +154,7 @@
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
 </data>
  </layer>
- <layer id="5" name="Foreground" width="20" height="15" visible="0">
+ <layer id="5" name="Foreground" width="20" height="15">
   <data encoding="csv">
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
