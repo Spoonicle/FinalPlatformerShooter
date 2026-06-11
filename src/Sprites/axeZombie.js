@@ -13,7 +13,7 @@ class AxeZombie extends Phaser.Physics.Arcade.Sprite {
         this.setOrigin(0.5, 1); // Anchor bottom to prevent jittering during animations
         this.play("axeZombieIdleAnim");
         this.body.setAllowGravity(false);
-        this.body.setSize(this.width, this.height); // Lock the collision box size
+        this.body.setSize(this.frame.width, this.frame.height, true);
         this.baseSpeed = 0; // Move identically to the platform it rests on
         this.hp = 1; // 1 hit points
         this.scorePoints = 30;

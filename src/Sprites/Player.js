@@ -500,8 +500,17 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.visible = false;
         this.body.setEnable(false);
 
+        // Adjust coordinates if the player was in the jumping state (offset Y = 100)
+        // to align with the running/grounded state coordinate space
+        let spawnX = this.x;
+        let spawnY = this.y;
+        if (this.body.offset.y === 100) {
+            spawnX += 36;
+            spawnY -= 56.25;
+        }
+
         // Spawn the deadPlayer as a physics sprite so it experiences gravity and physics
-        let deadPlayer = this.scene.physics.add.sprite(this.x, this.y, "xeno-grunt-death")
+        let deadPlayer = this.scene.physics.add.sprite(spawnX, spawnY, "xeno-grunt-death")
             .setScale(this.scaleX)
             .setOrigin(this.originX, this.originY);
 
@@ -509,9 +518,9 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             deadPlayer.setFlipX(true);
         }
 
-        // Mirror the player's exact physics body properties and collision geometry
-        deadPlayer.body.setSize(this.body.width, this.body.height, false);
-        deadPlayer.body.setOffset(this.body.offset.x, this.body.offset.y);
+        // Mirror the player's running/grounded physics body properties and collision geometry
+        deadPlayer.body.setSize(70, 95, false);
+        deadPlayer.body.setOffset(70, 225);
         deadPlayer.setCollideWorldBounds(true);
 
         // Carry over the player's momentum (velocity) at death

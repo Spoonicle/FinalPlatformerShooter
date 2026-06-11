@@ -597,11 +597,13 @@ class ArcadeShooter extends Phaser.Scene {
         }
 
         // Check for bullet collision with the enemies
+        let hitBullets = [];
         for (let bullet of my.sprite.bullet) {
             for (let enemy of my.sprite.enemies) {
                 if (enemy.visible && this.collides(enemy, bullet)) {
-                    bullet.x = game.config.width + 100; // Move bullet offscreen to be despawned
-
+                    bullet.destroy(); // Destroy bullet immediately
+                    hitBullets.push(bullet);
+ 
                     // Generic enemy hit logic
                     let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
                     if (enemy.hp !== undefined) {
@@ -627,6 +629,10 @@ class ArcadeShooter extends Phaser.Scene {
                     break; // Stop checking this bullet against other enemies since it already hit one
                 }
             }
+        }
+        // Filter out hit bullets from the active list
+        if (hitBullets.length > 0) {
+            my.sprite.bullet = my.sprite.bullet.filter((b) => !hitBullets.includes(b));
         }
 
         // Check for collision with the PLAYER
