@@ -339,14 +339,14 @@ class Player extends Phaser.Physics.Arcade.Sprite {
 
         // Shooting (J key)
         if (Phaser.Input.Keyboard.JustDown(this.jKey)) {
-            if (this.scene.scene.key === "ArcadeShooter") {
+            if (this.scene.scene.key === "ArcadeShooter" || this.scene.scene.key === "TutorialRoom") {
                 this.fireBullet();
             }
         }
 
         // Manual Reload (R key)
         if (Phaser.Input.Keyboard.JustDown(this.rKey) && !this.isReloading && this.bulletsInChamber < 6) {
-            if (this.scene.scene.key === "ArcadeShooter") {
+            if (this.scene.scene.key === "ArcadeShooter" || this.scene.scene.key === "TutorialRoom") {
                 this.reloadGun();
             }
         }
@@ -429,14 +429,14 @@ class Player extends Phaser.Physics.Arcade.Sprite {
     fireBullet() {
         if (this.bulletsInChamber > 0 && !this.isReloading && !this.wasCrouching) {
             this.bulletsInChamber--;
-            let dir = this.facingDirection || 1;
+            let dir = 1;
             let offsetX = 0;
             let offsetY = 50;
 
             let newBullet = this.scene.add.sprite(
                 this.x + offsetX, this.y + offsetY, "bullet"
             ).setScale(0.75);
-            newBullet.setFlipX(dir === -1);
+            newBullet.setFlipX(false);
             newBullet.fireDirection = dir;
 
             if (this.scene.my && this.scene.my.sprite && this.scene.my.sprite.bullet) {

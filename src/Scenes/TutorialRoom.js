@@ -2,6 +2,7 @@ class TutorialRoom extends Phaser.Scene {
     constructor() {
         super("TutorialRoom");
         this.my = { sprite: {}, text: {} };
+        this.my.sprite.bullet = [];
     }
 
     preload() {
@@ -299,6 +300,39 @@ class TutorialRoom extends Phaser.Scene {
         if (my.sprite.player && my.sprite.player.active) {
             my.sprite.player.update(time, delta);
         }
+
+        // Move and update bullets
+        let dt = delta / 1000;
+        my.sprite.bullet = my.sprite.bullet.filter((bullet) => {
+            if (bullet.x < this.sys.game.config.width + (bullet.displayWidth / 2) && bullet.x > -(bullet.displayWidth / 2)) {
+                let direction = bullet.fireDirection || 1;
+                bullet.x += 500 * dt * direction; // Speed is 500
+                return true;
+            } else {
+                bullet.destroy();
+                return false;
+            }
+        });
+
+        // Bullet collision with tutorial enemies
+        let hitBullets = [];
+        for (let bullet of my.sprite.bullet) {
+            for (let enemy of my.sprite.enemies) {
+                if (enemy.visible && this.collides(enemy, bullet)) {
+                    bullet.destroy();
+                    hitBullets.push(bullet);
+
+                    this.playZombieDeathVisual(enemy);
+                    enemy.visible = false;
+                    enemy.x = -100;
+                    this.sound.play("explosion", { volume: 1 });
+                    break;
+                }
+            }
+        }
+        if (hitBullets.length > 0) {
+            my.sprite.bullet = my.sprite.bullet.filter((b) => !hitBullets.includes(b));
+        }
     }
 
     playZombieDeathVisual(enemy) {
@@ -309,5 +343,37 @@ class TutorialRoom extends Phaser.Scene {
         if (platform) {
             platform.destroy();
         }
+    }
+
+    collides(a, b) {
+        const getBounds = (obj) => {
+            if (obj.body) {
+                return {
+                    left: obj.body.left,
+                    right: obj.body.right,
+                    top: obj.body.top,
+                    bottom: obj.body.bottom
+                };
+            } else {
+                let originX = obj.originX !== undefined ? obj.originX : 0.5;
+                let originY = obj.originY !== undefined ? obj.originY : 0.5;
+                let scaleReduction = 0.6;
+                let w = obj.displayWidth * scaleReduction;
+                let h = obj.displayHeight * scaleReduction;
+                let centerX = obj.x - (obj.displayWidth * (originX - 0.5));
+                let centerY = obj.y - (obj.displayHeight * (originY - 0.5));
+                return {
+                    left: centerX - (w / 2),
+                    right: centerX + (w / 2),
+                    top: centerY - (h / 2),
+                    bottom: centerY + (h / 2)
+                };
+            }
+        };
+        let boxA = getBounds(a);
+        let boxB = getBounds(b);
+        if (boxA.right < boxB.left || boxA.left > boxB.right) return false;
+        if (boxA.bottom < boxB.top || boxA.top > boxB.bottom) return false;
+        return true;
     }
 }
