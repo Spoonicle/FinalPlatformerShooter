@@ -253,7 +253,7 @@ class TutorialRoom extends Phaser.Scene {
         }, null, this);
 
         // Create prompt text for the computer desk
-        this.my.text.deskPrompt = this.add.text(320, 245, "S to dodge projectiles\n  Shift to ground slash", {
+        this.my.text.deskPrompt = this.add.text(320, 235, "SPACE to shoot\nS to dodge projectiles\n  Shift to ground slash", {
             fontFamily: 'PressStart2P',
             fontSize: '14px',
             color: '#FFFFFF',
