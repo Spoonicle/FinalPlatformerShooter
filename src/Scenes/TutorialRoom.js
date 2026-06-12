@@ -186,7 +186,6 @@ class TutorialRoom extends Phaser.Scene {
 
         // ====================================================================
         // PLATFORM CONFIGURATION SECTION
-        // Feel free to adjust these values to move or customize the stacks!
         // ====================================================================
         const platformXOffset = -110;     // Adjust this to move all platform stacks left/right together
         const columnHeights = [2, 4, 3];  // Heights of the first (left), next (middle), and last (right) stacks
@@ -254,7 +253,7 @@ class TutorialRoom extends Phaser.Scene {
         }, null, this);
 
         // Create prompt text for the computer desk
-        this.my.text.deskPrompt = this.add.text(320, 235, "J to shoot\n S to dodge projectiles\n  Shift to ground slash", {
+        this.my.text.deskPrompt = this.add.text(320, 235, "J to shoot\n S to dodge projectiles\n  Shift to ground slash\n R to reload ", {
             fontFamily: 'PressStart2P',
             fontSize: '14px',
             color: '#FFFFFF',
