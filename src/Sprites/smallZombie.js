@@ -6,7 +6,7 @@ class SmallZombie extends Phaser.Physics.Arcade.Sprite {
         // Fallback spawn positions if not provided (ArcadeShooter default offscreen horde logic)
         let spawnX = (x !== undefined) ? x : scene.game.config.width + 50 + Phaser.Math.Between(0, 100);
         let spawnY = (y !== undefined) ? y : scene.game.config.height - 103 + Phaser.Math.Between(-15, 15);
-        
+
         let initialTexture = animKey.includes("Idle") ? "smallZombieIdle" : "smallZombieWalk";
         super(scene, spawnX, spawnY, initialTexture);
         scene.add.existing(this);
@@ -16,14 +16,14 @@ class SmallZombie extends Phaser.Physics.Arcade.Sprite {
         this.play(animKey);
         this.anims.setProgress(Math.random()); // Desynchronize the walk animation so they don't march in sync
         this.body.setAllowGravity(false); // They glide/run firmly on top of the ground
-        
+
         let enemySpeed = (scene.enemySpeed !== undefined) ? scene.enemySpeed : 100;
         this.baseSpeed = enemySpeed + Phaser.Math.Between(-30, 60); // Vary walking speed slightly
         this.hp = 1; // Small zombies die in 1 hit
-        this.scorePoints = 10;
+        this.scorePoints = 20;
         this.type = "small";
         this.setDepth(spawnY); // Ensure zombies lower on the screen render in front of those behind them
-        
+
         if (!scene.my.sprite.enemies) {
             scene.my.sprite.enemies = [];
         }
@@ -90,12 +90,12 @@ class SmallZombie extends Phaser.Physics.Arcade.Sprite {
     static playDeathVisual(scene, enemy) {
         let animKey = "smallZombieDeathAnim";
         let spriteKey = "smallZombieDeath";
-        
+
         let deathSprite = scene.physics.add.sprite(enemy.x, enemy.y, spriteKey)
             .setScale(enemy.scaleX, enemy.scaleY)
             .setDepth(enemy.depth)
             .play(animKey);
-            
+
         // Anchor to the bottom of the previous sprite so feet stay firmly planted
         let origY = enemy.originY !== undefined ? enemy.originY : 0.5;
         let enemyBottom = enemy.y + (enemy.displayHeight * (1 - origY));
@@ -108,7 +108,7 @@ class SmallZombie extends Phaser.Physics.Arcade.Sprite {
 
         deathSprite.body.setAllowGravity(false);
         deathSprite.baseSpeed = enemy.baseSpeed || 0; // Maintain the same momentum
-        
+
         if (!scene.my.sprite.deadEnemies) {
             scene.my.sprite.deadEnemies = [];
         }

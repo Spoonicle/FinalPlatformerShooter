@@ -16,10 +16,10 @@ class AxeZombie extends Phaser.Physics.Arcade.Sprite {
         this.body.setSize(this.frame.width, this.frame.height, true);
         this.baseSpeed = 0; // Move identically to the platform it rests on
         this.hp = 1; // 1 hit points
-        this.scorePoints = 30;
+        this.scorePoints = 50;
         this.type = "axe";
         this.attackTimer = 500; // Throw the first axe much faster (0.5 seconds)
-        
+
         scene.my.sprite.enemies.push(this);
     }
 

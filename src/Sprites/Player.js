@@ -459,7 +459,7 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.playSound("revolverSpin");
 
         this.scene.time.delayedCall(50, () => {
-            this.playSound("revolverCock");
+            //this.playSound("revolver");
             this.scene.time.delayedCall(600, () => {
                 this.bulletsInChamber = 6;
                 this.isReloading = false;
