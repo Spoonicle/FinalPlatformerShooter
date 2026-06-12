@@ -36,6 +36,8 @@ class TutorialRoom extends Phaser.Scene {
 
         this.load.audio("explosion", "explosionCrunch_000.ogg");
         this.load.audio("explosion2", "explosionCrunch_001.ogg");
+        this.load.audio("DoorOpen", "DoorOpen.mp3");
+        this.load.audio("DoorClose", "DoorClosing.mp3");
 
         // Load platform image for smash tutorial
         this.load.setPath("./assets/Platforms/");
@@ -250,12 +252,28 @@ class TutorialRoom extends Phaser.Scene {
             }
         }, null, this);
 
-
+        // Create prompt text for the computer desk
+        this.my.text.deskPrompt = this.add.text(320, 245, "S to dodge projectiles\n  Shift to ground slash", {
+            fontFamily: 'PressStart2P',
+            fontSize: '14px',
+            color: '#FFFFFF',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5).setVisible(false);
     }
 
     update(time, delta) {
         let my = this.my;
-        let isMoving = false;
+
+        // Check for Computer Desk Proximity to show/hide tutorial prompt
+        if (my.sprite.player && my.sprite.player.active && my.text.deskPrompt) {
+            let px = my.sprite.player.x;
+            let py = my.sprite.player.y;
+            // Desk is at x = [240, 400], y = [320, 400]
+            let nearDesk = (px >= 220 && px <= 420 && py >= 250 && py <= 450);
+            my.text.deskPrompt.setVisible(nearDesk);
+        }
 
         // Check for Door Proximity to open/close the door
         if (my.sprite.door) {
@@ -267,11 +285,13 @@ class TutorialRoom extends Phaser.Scene {
                 if (!this.doorOpening) {
                     this.doorOpening = true;
                     my.sprite.door.anims.play("doorOpen");
+                    this.sound.play("DoorOpen");
                 }
             } else {
                 if (this.doorOpening) {
                     this.doorOpening = false;
                     my.sprite.door.anims.playReverse("doorOpen");
+                    this.sound.play("DoorClose");
                 }
             }
         }

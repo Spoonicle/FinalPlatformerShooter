@@ -35,7 +35,6 @@ class Player extends Phaser.Physics.Arcade.Sprite {
         this.setCollideWorldBounds(true);
 
         // Input Setup
-        this.up = scene.input.keyboard.addKey("W");
         this.down = scene.input.keyboard.addKey("S");
         this.left = scene.input.keyboard.addKey("A");
         this.right = scene.input.keyboard.addKey("D");

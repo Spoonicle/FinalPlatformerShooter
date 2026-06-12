@@ -22,8 +22,6 @@ class ArcadeShooter extends Phaser.Scene {
         this.my.sprite.enemyBullet = [];
         this.my.sprite.enemies = [];
         this.my.sprite.deadEnemies = [];
-        this.bulletsInChamber = 6;     // Track revolver ammo
-        this.isReloading = false;      // Track if currently reloading
 
         this.myScore = 0;       // record a score as a class variable
         this.myHealth = 3;      // Start with 3 health
@@ -88,7 +86,7 @@ class ArcadeShooter extends Phaser.Scene {
         SmallZombie.preload(this);
         this.load.setPath("./assets/small_Zombie/");
         this.load.image("axeThrown", "Axe_Side-left_Thrown-Sheet9.png"); // Load thrown axe projectile
-        
+
         this.load.setPath("./assets/");
 
         // Load the Kenny Rocket Square bitmap font
@@ -104,10 +102,10 @@ class ArcadeShooter extends Phaser.Scene {
         this.load.audio("explosion3", "explosionCrunch_002.ogg");
         this.load.audio("enemyFire", "laserRetro_004.ogg");
         this.load.audio("space_audio", "space_audio.mp3");
-        
+
         this.load.audio("axeHitAudio", "axeHitAudio.mp3");
         this.load.audio("axeThrowAudio", "axeThrowAudio.mp3");
- 
+
         this.load.audio("giantWalk", "giantWalk.mp3");
         this.load.audio("sillyBoing", "sillyBoing.mp3");
 
@@ -225,35 +223,14 @@ class ArcadeShooter extends Phaser.Scene {
         // Small Zombie Animations
         SmallZombie.initTexturesAndAnims(this);
 
-        // Create key objects
-        this.up = this.input.keyboard.addKey("W");
-        this.down = this.input.keyboard.addKey("S");
-        this.left = this.input.keyboard.addKey("A");
-        this.right = this.input.keyboard.addKey("D");
+        // Create key objects for menus/restarts
         this.space = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
-        this.jKey = this.input.keyboard.addKey("J");
         this.rKey = this.input.keyboard.addKey("R");
-        this.iKey = this.input.keyboard.addKey("I"); // Toggle invulnerability during tests
-        this.shift = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
 
         // Set movement speeds (in pixels/sec)
-        this.playerSpeed = 300;
-        this.jumpSpeed = 1500;
-        this.bulletSpeed = 500;
         this.enemyBulletSpeed = 300;
         this.enemySpeed = 100;
-
-        // Determine the maximum vertical reach of a jump (use original jump reference to keep platform spawning unchanged)
-        const low_height = 500; // preserve original platform spawn behavior
-        this.maxPlatformJumpDistance = Math.floor((low_height * low_height) / (2 * this.physics.world.gravity.y));
-
-        // Coyote time: allow a short grace period after leaving ground so jumps feel responsive
-        this.coyoteTime = 150; // milliseconds
-        this.lastGrounded = 0;
-
-        // Single jump
-        this.maxJumps = 1;
-        this.jumpsRemaining = this.maxJumps;
+        this.bulletSpeed = 500;
 
         // Create a simple ground for the platformer (invisible but collidable)
         // Increased height so the ground area is a bit taller
@@ -305,7 +282,7 @@ class ArcadeShooter extends Phaser.Scene {
         // Small on-screen indicator for invulnerability (hidden by default)
         my.text.invul = this.add.text(580, 55, "INVUL", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FF4444' }).setOrigin(0, 0);
         my.text.invul.visible = false;
-        
+
         // Shift Cooldown UI
         my.text.slamLabel = this.add.text(20, 570, "SLAM", { fontFamily: 'PressStart2P', fontSize: '14px', color: '#FFFFFF' });
         my.text.slamLabel.visible = false;
@@ -321,9 +298,9 @@ class ArcadeShooter extends Phaser.Scene {
         // Title Screen Text
         my.text.titleTextShadow1 = this.add.text(game.config.width / 2 + 3, game.config.height / 2 - 63, "VENDETTA", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#888888' }).setOrigin(0.5);
         my.text.titleTextShadow2 = this.add.text(game.config.width / 2 + 6, game.config.height / 2 - 66, "VENDETTA", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#444444' }).setOrigin(0.5);
-        my.text.titleText = this.add.text(game.config.width / 2, game.config.height / 2 - 60, "VENDETTA", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.authorText = this.add.text(game.config.width / 2, game.config.height / 2 + 20, "Created by Mason Reoch", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FFFFFF' }).setOrigin(0.5);
-        my.text.startText = this.add.text(game.config.width / 2, game.config.height / 2 + 80, "Press SPACE to Start", { fontFamily: 'PressStart2P', fontSize: '18px', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.titleText = this.add.text(game.config.width / 2, game.config.height / 2 - 60, " VENDETTA ", { fontFamily: 'PressStart2P', fontSize: '54px', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.authorText = this.add.text(game.config.width / 2, game.config.height / 2 + 20, " Created by Mason Reoch ", { fontFamily: 'PressStart2P', fontSize: '16px', color: '#FFFFFF' }).setOrigin(0.5);
+        my.text.startText = this.add.text(game.config.width / 2, game.config.height / 2 + 80, " Press SPACE to Start ", { fontFamily: 'PressStart2P', fontSize: '18px', color: '#FFFFFF' }).setOrigin(0.5);
 
         // Game Over text
         my.text.gameOver = this.add.text(game.config.width / 2, game.config.height / 2, "GAME OVER\nPress R to Restart", { fontFamily: 'PressStart2P', fontSize: '24px', color: '#FFFFFF', align: 'center' }).setOrigin(0.5);
@@ -449,14 +426,14 @@ class ArcadeShooter extends Phaser.Scene {
                     this.platformConfig.spawnIntervalRange[1] * speedRatio
                 );
             }
-            
+
             // Zombie Group Spawn Logic
             if (this.zombiesToSpawn > 0) {
                 this.zombieSpawnTimer -= delta;
                 if (this.zombieSpawnTimer <= 0) {
                     this.spawnSmallZombie();
                     this.zombiesToSpawn--;
-                    this.zombieSpawnTimer = Phaser.Math.Between(50, 150); 
+                    this.zombieSpawnTimer = Phaser.Math.Between(50, 150);
                 }
             } else {
                 this.zombieGroupTimer -= delta;
@@ -471,7 +448,7 @@ class ArcadeShooter extends Phaser.Scene {
                 if (this.bigZombieSpawnTimer <= 0) {
                     this.spawnBigZombie();
                     // Spawn big zombies much less often (every 3 to 8 seconds)
-                    this.bigZombieSpawnTimer = Phaser.Math.Between(3000, 8000); 
+                    this.bigZombieSpawnTimer = Phaser.Math.Between(3000, 8000);
                 }
             }
 
@@ -480,7 +457,7 @@ class ArcadeShooter extends Phaser.Scene {
                 this.jumperZombieSpawnTimer -= delta;
                 if (this.jumperZombieSpawnTimer <= 0) {
                     this.spawnJumperZombie();
-                    this.jumperZombieSpawnTimer = Phaser.Math.Between(1500, 4000); 
+                    this.jumperZombieSpawnTimer = Phaser.Math.Between(1500, 4000);
                 }
             }
 
@@ -490,7 +467,7 @@ class ArcadeShooter extends Phaser.Scene {
                 let randomSound = Phaser.Utils.Array.GetRandom(this.zombieSoundKeys);
                 this.sound.play(randomSound, { volume: 0.2 }); // Kept slightly quieter so it doesn't drown out gunfire
                 // Play the next ambient sound randomly between 400ms and 1500ms from now
-                this.zombieAmbientTimer = Phaser.Math.Between(400, 1500); 
+                this.zombieAmbientTimer = Phaser.Math.Between(400, 1500);
             }
 
             // Update dead zombie velocities to match the world speed and their momentum
@@ -603,7 +580,7 @@ class ArcadeShooter extends Phaser.Scene {
                 if (enemy.visible && this.collides(enemy, bullet)) {
                     bullet.destroy(); // Destroy bullet immediately
                     hitBullets.push(bullet);
- 
+
                     // Generic enemy hit logic
                     let deathSound = enemy.type === "big" ? "explosion2" : "explosion";
                     if (enemy.hp !== undefined) {
@@ -796,12 +773,12 @@ class ArcadeShooter extends Phaser.Scene {
             let lowX = x + offsetX;
             let spriteKeyLow = Phaser.Utils.Array.GetRandom(this.platformSpriteKeys);
             let platformLow = this.platforms.create(lowX, 0, spriteKeyLow).setOrigin(0.5).setScale(pScale);
-            
+
             let lowValidY = false;
             let lowAttempts = 0;
             let lowY = 0;
             let allPlatforms = this.platforms.getChildren();
-            
+
             while (!lowValidY && lowAttempts < 50) {
                 lowY = Phaser.Math.Between((game.config.height / 2) + 50, game.config.height - this.platformConfig.zoneBottomMargin);
                 let overlaps = false;
@@ -817,7 +794,7 @@ class ArcadeShooter extends Phaser.Scene {
                 if (!overlaps) lowValidY = true;
                 lowAttempts++;
             }
-            
+
             // If it STILL overlaps after 50 attempts, push lowX to the right
             if (!lowValidY) {
                 let safeXFound = false;
@@ -839,7 +816,7 @@ class ArcadeShooter extends Phaser.Scene {
 
             platformLow.x = lowX;
             platformLow.y = lowY;
-            
+
             let lowTexWidth = platformLow.width;
             let lowTexHeight = platformLow.height;
             this.addPlatformInstance(platformLow, lowTexWidth, lowTexHeight, speed, this.numZones - 1);
@@ -887,14 +864,14 @@ class ArcadeShooter extends Phaser.Scene {
                 // Fallback to visual bounds, but shrink non-physics projectiles by 40% so hits don't feel cheap
                 let originX = obj.originX !== undefined ? obj.originX : 0.5;
                 let originY = obj.originY !== undefined ? obj.originY : 0.5;
-                
+
                 let scaleReduction = 0.6; // 60% of original visual size
-                let w = obj.displayWidth * scaleReduction; 
+                let w = obj.displayWidth * scaleReduction;
                 let h = obj.displayHeight * scaleReduction;
-                
+
                 let centerX = obj.x - (obj.displayWidth * (originX - 0.5));
                 let centerY = obj.y - (obj.displayHeight * (originY - 0.5));
-                
+
                 return {
                     left: centerX - (w / 2),
                     right: centerX + (w / 2),
@@ -906,11 +883,11 @@ class ArcadeShooter extends Phaser.Scene {
 
         let boxA = getBounds(a);
         let boxB = getBounds(b);
-        
+
         // AABB overlap check
         if (boxA.right < boxB.left || boxA.left > boxB.right) return false;
         if (boxA.bottom < boxB.top || boxA.top > boxB.bottom) return false;
-        
+
         return true;
     }
 
@@ -1002,7 +979,7 @@ class ArcadeShooter extends Phaser.Scene {
 
         let animKey = "";
         let spriteKey = "";
-        
+
         if (enemy.type === "big") {
             animKey = "bigZombieDeathAnim";
             spriteKey = "bigZombieDeath";
@@ -1010,12 +987,12 @@ class ArcadeShooter extends Phaser.Scene {
             animKey = "axeZombieDeathAnim";
             spriteKey = "axeZombieDeath";
         }
-        
+
         let deathSprite = this.physics.add.sprite(enemy.x, enemy.y, spriteKey)
             .setScale(enemy.scaleX, enemy.scaleY)
             .setDepth(enemy.depth)
             .play(animKey);
-            
+
         // Anchor to the bottom of the previous sprite so feet stay firmly planted
         let origY = enemy.originY !== undefined ? enemy.originY : 0.5;
         let enemyBottom = enemy.y + (enemy.displayHeight * (1 - origY));
